@@ -1,0 +1,3603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Три Мельницы 3D" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d0907" />
+  <title>Three Men's Morris 3D — Три Мельницы</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-light: #f6d88c;
+      --gold-main: #d4a84f;
+      --gold-dark: #8c651e;
+      --panel-bg: rgba(18, 14, 11, 0.76);
+      --panel-border: rgba(212, 168, 79, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: #0d0907;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #f7efe2;
+      touch-action: none;
+    }
+
+    .font-serif-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* Glassmorphism panels */
+    .glass-pill {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 244, 214, 0.12);
+      isolation: isolate;
+    }
+
+    .glass-modal {
+      background: rgba(20, 15, 12, 0.92);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(212, 168, 79, 0.38);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 240, 200, 0.16);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 248, 231, 0.06);
+      border: 1px solid rgba(212, 168, 79, 0.24);
+      color: #f3e5c8;
+      transition: transform 0.16s ease, background 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: rgba(212, 168, 79, 0.24);
+    }
+
+    .icon-btn.active-mode {
+      background: rgba(212, 168, 79, 0.25);
+      border-color: rgba(246, 216, 140, 0.7);
+      color: #ffe39e;
+    }
+
+    .action-btn {
+      height: 40px;
+      padding: 0 9px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(255, 248, 231, 0.07);
+      border: 1px solid rgba(212, 168, 79, 0.24);
+      color: #f5ebd6;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      white-space: nowrap;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 430px) {
+      .action-btn {
+        height: 38px;
+        padding: 0 6px;
+        gap: 3px;
+        font-size: 11px;
+      }
+      .action-btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    @media (max-width: 355px) {
+      .action-btn {
+        height: 36px;
+        padding: 0 5px;
+        gap: 2.5px;
+        font-size: 10.5px;
+      }
+      .action-btn svg {
+        width: 13px;
+        height: 13px;
+      }
+    }
+
+    .action-btn:active {
+      transform: scale(0.94);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.36;
+      pointer-events: none;
+    }
+
+    .action-btn-gold {
+      background: linear-gradient(135deg, #e5be67 0%, #b5832c 100%);
+      color: #181109;
+      border: 1px solid #f7df9c;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(212, 168, 79, 0.35);
+    }
+
+    .player-card {
+      transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      border: 1px solid transparent;
+    }
+
+    .player-card.active-turn {
+      background: rgba(212, 168, 79, 0.16);
+      border-color: rgba(246, 216, 140, 0.65);
+      box-shadow: 0 0 18px rgba(212, 168, 79, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .piece-pip {
+      width: 9px;
+      height: 9px;
+      border-radius: 9999px;
+      transition: all 0.25s ease;
+    }
+
+    .piece-pip.ivory {
+      background: radial-gradient(circle at 35% 35%, #fffdf9, #d9c398);
+      box-shadow: 0 0 5px rgba(255, 242, 204, 0.6);
+    }
+
+    .piece-pip.obsidian {
+      background: radial-gradient(circle at 35% 35%, #665850, #1a1512);
+      border: 1px solid #c9935b;
+    }
+
+    .piece-pip.placed {
+      opacity: 0.24;
+      transform: scale(0.75);
+    }
+
+    /* Safe area spacing for mobile phones (S26 Ultra gesture pill & iPhone Home Indicator) */
+    .safe-top {
+      padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 6px));
+    }
+
+    .safe-bottom {
+      padding-bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+    }
+
+    .bottom-dock-shell {
+      width: 100%;
+      max-width: 100%;
+      overflow: visible;
+      background: transparent;
+      border: none;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .bottom-dock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+      padding: 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      box-shadow: none;
+    }
+
+    .bottom-dock-row .action-btn:not(.action-btn-gold) {
+      background: rgba(18, 14, 11, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 168, 79, 0.28);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 244, 214, 0.12);
+    }
+
+    button, select, input {
+      outline: none;
+      -webkit-appearance: none;
+    }
+    button:focus, button:focus-visible, select:focus, input:focus {
+      outline: none;
+    }
+
+    /* Subtle pulse for status hint */
+    @keyframes softPulse {
+      0%, 100% { opacity: 0.92; }
+      50% { opacity: 0.62; }
+    }
+
+    .hint-pulse {
+      animation: softPulse 2.8s infinite ease-in-out;
+    }
+
+
+    /* iOS Standalone PWA Safe Area & Touch Enhancements */
+    html {
+      height: -webkit-fill-available;
+      overscroll-behavior: none;
+    }
+    body {
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
+      overscroll-behavior: none;
+      -webkit-touch-callout: none;
+    }
+    @media all and (display-mode: standalone) {
+      .safe-top {
+        padding-top: max(14px, calc(env(safe-area-inset-top, 20px) + 6px));
+      }
+      .safe-bottom {
+        padding-bottom: max(22px, calc(env(safe-area-inset-bottom, 16px) + 10px));
+      }
+    }
+
+    /* Custom scroll for rules modal */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(212, 168, 79, 0.35);
+      border-radius: 9999px;
+    }
+  </style>
+<style id="offline-tailwind-fallback">
+  .fixed { position: fixed; }
+  .relative { position: relative; }
+  .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+  .z-10 { z-index: 10; }
+  .z-20 { z-index: 20; }
+  .z-30 { z-index: 30; }
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .flex-1 { flex: 1 1 0%; }
+  .flex-shrink-0 { flex-shrink: 0; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .justify-center { justify-content: center; }
+  .justify-end { justify-content: flex-end; }
+  .w-full { width: 100%; }
+  .max-w-lg { max-width: 32rem; }
+  .max-w-md { max-width: 28rem; }
+  .max-w-sm { max-width: 24rem; }
+  .max-h-\[86dvh\] { max-height: 86dvh; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .mt-0\.5 { margin-top: 0.125rem; }
+  .mt-1 { margin-top: 0.25rem; }
+  .mt-2 { margin-top: 0.5rem; }
+  .mt-5 { margin-top: 1.25rem; }
+  .mb-3 { margin-bottom: 0.75rem; }
+  .p-1\.5 { padding: 0.375rem; }
+  .p-2 { padding: 0.5rem; }
+  .p-3 { padding: 0.75rem; }
+  .p-3\.5 { padding: 0.875rem; }
+  .p-4 { padding: 1rem; }
+  .p-5 { padding: 1.25rem; }
+  .p-6 { padding: 1.5rem; }
+  .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+  .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+  .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+  .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+  .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+  .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+  .pb-3 { padding-bottom: 0.75rem; }
+  .pt-1 { padding-top: 0.25rem; }
+  .pt-3 { padding-top: 0.75rem; }
+  .pr-1 { padding-right: 0.25rem; }
+  .gap-1 { gap: 0.25rem; }
+  .gap-1\.5 { gap: 0.375rem; }
+  .gap-2 { gap: 0.5rem; }
+  .gap-2\.5 { gap: 0.625rem; }
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.25rem; }
+  .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.375rem; }
+  .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.625rem; }
+  .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
+  .min-w-0 { min-width: 0px; }
+  .w-2 { width: 0.5rem; }
+  .h-2 { height: 0.5rem; }
+  .w-4 { width: 1rem; }
+  .h-4 { height: 1rem; }
+  .w-7 { width: 1.75rem; }
+  .h-7 { height: 1.75rem; }
+  .w-8 { width: 2rem; }
+  .h-8 { height: 2rem; }
+  .w-14 { width: 3.5rem; }
+  .h-14 { height: 3.5rem; }
+  .rounded { border-radius: 0.25rem; }
+  .rounded-xl { border-radius: 0.75rem; }
+  .rounded-2xl { border-radius: 1rem; }
+  .rounded-3xl { border-radius: 1.5rem; }
+  .rounded-full { border-radius: 9999px; }
+  .border { border-width: 1px; border-style: solid; }
+  .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+  .border-t { border-top-width: 1px; border-top-style: solid; }
+  .border-amber-400\/30 { border-color: rgba(251, 191, 36, 0.3); }
+  .border-amber-400\/40 { border-color: rgba(251, 191, 36, 0.4); }
+  .border-amber-400\/20 { border-color: rgba(251, 191, 36, 0.2); }
+  .border-amber-300\/50 { border-color: rgba(252, 211, 77, 0.5); }
+  .border-amber-500\/20 { border-color: rgba(245, 158, 11, 0.2); }
+  .border-amber-500\/30 { border-color: rgba(245, 158, 11, 0.3); }
+  .border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
+  .bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.2); }
+  .bg-amber-500\/10 { background-color: rgba(245, 158, 11, 0.1); }
+  .bg-amber-300 { background-color: #fcd34d; }
+  .bg-orange-400 { background-color: #fb923c; }
+  .bg-emerald-400 { background-color: #34d399; }
+  .bg-black\/60 { background-color: rgba(0, 0, 0, 0.6); }
+  .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7); }
+  .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05); }
+  .bg-stone-900\/90 { background-color: rgba(28, 25, 23, 0.9); }
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+  .text-xs { font-size: 0.75rem; line-height: 1rem; }
+  .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+  .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+  .text-\[10px\] { font-size: 10px; line-height: 14px; }
+  .text-\[11px\] { font-size: 11px; line-height: 15px; }
+  .font-medium { font-weight: 500; }
+  .font-semibold { font-weight: 600; }
+  .font-bold { font-weight: 700; }
+  .uppercase { text-transform: uppercase; }
+  .tracking-wide { letter-spacing: 0.025em; }
+  .tracking-wider { letter-spacing: 0.05em; }
+  .tracking-widest { letter-spacing: 0.1em; }
+  .leading-none { line-height: 1; }
+  .leading-relaxed { line-height: 1.625; }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .overflow-hidden { overflow: hidden; }
+  .overflow-y-auto { overflow-y: auto; }
+  .pointer-events-none { pointer-events: none; }
+  .pointer-events-auto { pointer-events: auto; }
+  .select-none { user-select: none; -webkit-user-select: none; }
+  .text-amber-100 { color: #fef3c7; }
+  .text-amber-100\/90 { color: rgba(254, 243, 199, 0.9); }
+  .text-amber-200 { color: #fde68a; }
+  .text-amber-300 { color: #fcd34d; }
+  .text-amber-300\/80 { color: rgba(252, 211, 77, 0.8); }
+  .text-stone-200 { color: #e7e5e4; }
+  .text-stone-300 { color: #d6d3d1; }
+  .text-stone-400 { color: #a8a29e; }
+  .text-stone-900 { color: #1c1917; }
+  .accent-amber-400 { accent-color: #fbbf24; }
+  .absolute { position: absolute; }
+  .top-1 { top: 0.25rem; }
+  .right-1 { right: 0.25rem; }
+  .block { display: block; }
+  .p-1 { padding: 0.25rem; }
+  .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .px-4 { padding-left: 1rem; padding-right: 1rem; }
+  .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+  .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
+  .space-y-3\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.875rem; }
+  .w-2\.5 { width: 0.625rem; }
+  .h-2\.5 { height: 0.625rem; }
+  .max-h-\[88dvh\] { max-height: 88dvh; }
+  .bg-black\/75 { background-color: rgba(0, 0, 0, 0.75); }
+  .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1); }
+  .border-amber-400\/25 { border-color: rgba(251, 191, 36, 0.25); }
+  .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .cursor-pointer { cursor: pointer; }
+  .focus\:outline-none:focus { outline: 2px solid transparent; outline-offset: 2px; }
+  .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.35); }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4); }
+  .transform { transform: translateZ(0); }
+  .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+  p, h1, h2, h3, h4 { margin: 0; }
+</style>
+</head>
+<body class="relative select-none overflow-hidden">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container" aria-label="3D игровое поле Three Men's Morris"></div>
+
+  <!-- Harmonious Mobile UI Overlay -->
+  <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between px-3 safe-top safe-bottom">
+
+    <!-- TOP HUD: Players, Phase & Quick Icons -->
+    <header class="w-full max-w-lg mx-auto flex flex-col gap-2 pointer-events-auto">
+      <div class="glass-pill rounded-2xl p-2 flex items-center justify-between gap-1.5">
+
+        <!-- Player 1 (Light / Ivory) -->
+        <div id="p1-card" class="player-card active-turn flex items-center gap-2 px-2.5 py-1.5 rounded-xl flex-1 min-w-0">
+          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center shadow-inner"
+               style="background: radial-gradient(circle at 30% 30%, #fffdf7, #cfb482); border: 1.5px solid #f5d78e;">
+            <span id="p1-score" class="text-xs font-bold text-stone-900">0</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-1">
+              <span id="p1-name" class="text-xs font-semibold tracking-wide text-amber-100 truncate">Белые</span>
+            </div>
+            <div id="p1-pips" class="flex items-center gap-1 mt-1" title="Фигуры в руке">
+              <span class="piece-pip ivory"></span>
+              <span class="piece-pip ivory"></span>
+              <span class="piece-pip ivory"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Phase & Mode Indicator -->
+        <div class="flex flex-col items-center justify-center px-2 text-center flex-shrink-0">
+          <span id="phase-badge" class="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30">
+            Расстановка
+          </span>
+          <span id="turn-subtext" class="text-[11px] text-stone-300 mt-0.5 font-medium">
+            Ход белых
+          </span>
+        </div>
+
+        <!-- Player 2 (Dark / Obsidian) -->
+        <div id="p2-card" class="player-card flex items-center gap-2 px-2.5 py-1.5 rounded-xl flex-1 min-w-0 justify-end text-right">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-end gap-1">
+              <span id="p2-name" class="text-xs font-semibold tracking-wide text-stone-200 truncate">Чёрные</span>
+            </div>
+            <div id="p2-pips" class="flex items-center justify-end gap-1 mt-1" title="Фигуры в руке">
+              <span class="piece-pip obsidian"></span>
+              <span class="piece-pip obsidian"></span>
+              <span class="piece-pip obsidian"></span>
+            </div>
+          </div>
+          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center shadow-inner"
+               style="background: radial-gradient(circle at 30% 30%, #4b3f39, #14100e); border: 1.5px solid #d29057;">
+            <span id="p2-score" class="text-xs font-bold text-amber-200">0</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Contextual Micro-Banner + Utility Buttons -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="glass-pill rounded-full px-3.5 py-1.5 flex items-center gap-2 flex-1 min-w-0">
+          <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-300 flex-shrink-0"></span>
+          <p id="status-hint" class="text-xs text-amber-100/90 truncate hint-pulse">
+            Коснитесь свободной лунки, чтобы поставить фигуру
+          </p>
+        </div>
+
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <button id="btn-online" type="button" class="icon-btn glass-pill relative" title="Играть онлайн и на iPhone" aria-label="Играть онлайн и на iPhone">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            <span id="online-dot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400"></span>
+          </button>
+          <button id="btn-camera" type="button" class="icon-btn glass-pill" title="Сменить ракурс камеры" aria-label="Сменить ракурс камеры">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <button id="btn-sound" type="button" class="icon-btn glass-pill active-mode" title="Звуковые эффекты" aria-label="Звуковые эффекты">
+            <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <svg id="icon-sound-off" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+          </button>
+          <button id="btn-fullscreen" type="button" class="icon-btn glass-pill" title="На весь экран" aria-label="На весь экран">
+            <svg id="icon-fs-enter" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+            </svg>
+            <svg id="icon-fs-exit" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+            </svg>
+          </button>
+          <button id="btn-rules" type="button" class="icon-btn glass-pill" title="Правила и настройки" aria-label="Правила и настройки">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- BOTTOM HUD: Clean Mobile Controls Dock (Adaptive for Vertical Portrait Mode) -->
+    <footer class="w-full max-w-lg mx-auto flex flex-col items-center pointer-events-auto bottom-dock-shell">
+      <div class="bottom-dock-row">
+
+        <!-- Undo Button -->
+        <button id="btn-undo" type="button" class="action-btn flex-1" disabled>
+          <svg class="w-4 h-4 text-amber-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+          <span class="truncate">Отмена</span>
+        </button>
+
+        <!-- Opponent Mode Toggle (2 Players / AI / Online) -->
+        <button id="btn-mode" type="button" class="action-btn flex-1">
+          <svg class="w-4 h-4 text-amber-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span id="mode-label" class="truncate">2 Игрока</span>
+        </button>
+
+        <!-- Hint / Best Move Button -->
+        <button id="btn-hint" type="button" class="action-btn flex-1">
+          <svg class="w-4 h-4 text-amber-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span class="truncate">Подсказка</span>
+        </button>
+
+        <!-- New Game Button -->
+        <button id="btn-restart" type="button" class="action-btn action-btn-gold flex-shrink-0">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span class="truncate">Заново</span>
+        </button>
+
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- VICTORY BANNER OVERLAY (Non-blocking or clean modal) -->
+  <div id="victory-modal" class="fixed inset-0 z-20 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div class="glass-modal rounded-3xl p-6 w-full max-w-sm text-center border border-amber-400/40 transform transition-all">
+      <div class="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-amber-500/20 border border-amber-300/50 shadow-lg">
+        <svg class="w-8 h-8 text-amber-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      </div>
+      <p class="text-xs uppercase tracking-widest text-amber-300/80 font-semibold">Мельница собрана</p>
+      <h2 id="victory-title" class="font-serif-title text-3xl font-bold text-amber-100 mt-1">Победа Белых!</h2>
+      <p id="victory-desc" class="text-xs text-stone-300 mt-2 leading-relaxed">
+        Три фигуры выстроены в единую линию на резной доске.
+      </p>
+      <div class="flex items-center gap-2.5 mt-5">
+        <button id="btn-victory-inspect" type="button" class="action-btn flex-1 py-2.5">
+          Осмотреть стол
+        </button>
+        <button id="btn-victory-play" type="button" class="action-btn action-btn-gold flex-1 py-2.5">
+          Новая партия
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES & SETTINGS MODAL -->
+  <div id="rules-modal" class="fixed inset-0 z-30 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="glass-modal rounded-3xl p-5 w-full max-w-md max-h-[86dvh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-amber-500/20">
+        <div>
+          <h2 class="font-serif-title text-2xl font-bold text-amber-200 leading-none">Three Men's Morris</h2>
+          <p class="text-xs text-stone-400 mt-1">Правила игры и настройки стола</p>
+        </div>
+        <button id="btn-close-rules" type="button" class="icon-btn" aria-label="Закрыть окно">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto custom-scroll py-4 space-y-4 text-xs text-stone-200 leading-relaxed pr-1">
+        <!-- Settings Controls -->
+        <div class="space-y-2.5 bg-white/5 p-3.5 rounded-2xl border border-amber-500/20">
+          <p class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">Настройки партии</p>
+
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <span>Режим соперника:</span>
+            <select id="select-opponent" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
+              <option value="pvp">2 Игрока (на 1 телефоне)</option>
+              <option value="ai_smart">ИИ Мастер (Minimax)</option>
+              <option value="ai_casual">ИИ Новичок</option>
+              <option value="online">Онлайн (по коду комнаты)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Линии доски:</span>
+            <select id="select-diagonals" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
+              <option value="with_diag">Классика (с диагоналями — 8 линий)</option>
+              <option value="no_diag">Ортогональная (без диагоналей — 6 линий)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Авто-доворот камеры к игроку:</span>
+            <input id="toggle-autorotate" type="checkbox" class="w-4 h-4 accent-amber-400 rounded cursor-pointer" />
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Освещение стола:</span>
+            <select id="select-ambiance" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
+              <option value="candle">Вечерняя свеча и камин</option>
+              <option value="daylight">Дневной кабинет</option>
+              <option value="royal">Золотой зал</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Rules Explanation -->
+        <div class="space-y-2.5">
+          <h3 class="text-sm font-semibold text-amber-200">Как играть (Классические правила)</h3>
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 space-y-1.5">
+            <p class="font-semibold text-amber-200">1. Фаза расстановки (Первые 6 ходов)</p>
+            <p class="text-stone-300">
+              У каждого игрока в резном лотке на краю стола находятся по <strong>3 фигуры</strong> (слоновая кость и чёрный обсидиан). Игроки по очереди выставляют по одной фигуре на любую свободную лунку на доске.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 space-y-1.5">
+            <p class="font-semibold text-amber-200">2. Фаза перемещения (После расстановки)</p>
+            <p class="text-stone-300">
+              Когда все 6 фигур выставлены на доску, игроки по очереди выбирают любую свою фигуру и передвигают её вдоль прорезанной золотой линии на <strong>соседнюю свободную лунку</strong>.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/20 space-y-1.5">
+            <p class="font-semibold text-amber-200">3. Победа («Мельница»)</p>
+            <p class="text-stone-300">
+              Побеждает тот, кто первым выстроит все <strong>3 свои фигуры в одну линию</strong> (по горизонтали, вертикали или главной диагонали, если выбран классический режим с диагоналями) — как во время расстановки, так и при перемещении.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+            <p class="font-semibold text-stone-200">Управление на телефоне</p>
+            <p class="text-stone-400">
+              • <strong>Касание</strong> по лунке или фигуре — выбор и ход.<br/>
+              • <strong>Проведение одним пальцем</strong> — плавный осмотр 3D-стола.<br/>
+              • <strong>Щипок двумя пальцами</strong> — приближение деталей резьбы.<br/>
+              • Кнопка <strong>Камера</strong> сверху переключает ракурс (Классический 3D / Сверху 90° / Кинематографичный).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-amber-500/20 flex justify-end">
+        <button id="btn-apply-rules" type="button" class="action-btn action-btn-gold w-full">
+          Продолжить игру
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONLINE MULTIPLAYER & iPHONE / CROSS-PLATFORM MODAL -->
+  <div id="online-modal" class="fixed inset-0 z-30 hidden items-center justify-center p-3 bg-black/75 backdrop-blur-sm">
+    <div class="glass-modal rounded-3xl p-5 w-full max-w-md max-h-[88dvh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-amber-500/20">
+        <div>
+          <h2 class="font-serif-title text-2xl font-bold text-amber-200 leading-none">Онлайн-игра и iPhone</h2>
+          <p class="text-xs text-stone-400 mt-1">Играйте между вашим S26 Ultra, iPhone и браузером</p>
+        </div>
+        <button id="btn-close-online" type="button" class="icon-btn" aria-label="Закрыть онлайн-меню">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto custom-scroll py-3.5 space-y-3.5 text-xs text-stone-200 leading-relaxed pr-1">
+        <!-- Connection Status Badge -->
+        <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-400/25 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="online-modal-dot" class="w-2.5 h-2.5 rounded-full bg-amber-300 flex-shrink-0"></span>
+            <span id="online-status-text" class="text-xs font-medium text-amber-100 truncate">Выберите: создать комнату или войти по коду</span>
+          </div>
+          <button id="btn-disconnect-online" type="button" class="hidden px-2.5 py-1 rounded-full bg-white/10 border border-amber-400/30 text-[11px] text-amber-200">
+            Отключить
+          </button>
+        </div>
+
+        <!-- Option 1: Host Room (Play as White / Ivory) -->
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-amber-500/20 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">1. Создать комнату (Вы — Белые)</span>
+            <button id="btn-host-room" type="button" class="action-btn action-btn-gold px-3">
+              Создать код
+            </button>
+          </div>
+          <p class="text-stone-400 text-[11px]">
+            Нажмите «Создать код» и продиктуйте или отправьте 4-значный код другу на iPhone или Android.
+          </p>
+          <div id="host-code-box" class="hidden pt-1 flex items-center justify-between gap-2 bg-stone-900/90 border border-amber-400/40 rounded-xl px-3 py-2">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider text-stone-400 block">Код вашей комнаты:</span>
+              <span id="host-room-code" class="text-xl font-bold tracking-widest text-amber-200">----</span>
+            </div>
+            <button id="btn-copy-code" type="button" class="action-btn px-3">
+              Копировать
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2: Join Room (Play as Black / Obsidian) -->
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-amber-500/20 space-y-2.5">
+          <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold block">2. Подключиться к другу (Вы — Чёрные)</span>
+          <div class="flex items-center gap-2">
+            <input id="input-join-code" type="text" maxlength="8" placeholder="Введите 4 цифры кода..."
+                   class="flex-1 min-w-0 bg-stone-900/90 border border-amber-500/30 rounded-xl px-3 py-2 text-sm font-semibold tracking-widest text-amber-100 uppercase focus:outline-none" />
+            <button id="btn-join-room" type="button" class="action-btn action-btn-gold px-4">
+              Войти
+            </button>
+          </div>
+        </div>
+
+        <!-- iPhone / Cross-Platform Guide -->
+        <div class="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+          <p class="font-semibold text-amber-200">📱 Как установить на iPhone и играть с вашим телефоном:</p>
+          <p class="text-stone-300 text-[11px]">
+            • <strong>На вашем Samsung S26 Ultra:</strong> игра работает как нативное приложение <strong>APK</strong> (или в браузере).<br/>
+            • <strong>На iPhone (iOS):</strong> файлы <code>.apk</code> предназначены только для Android, но этот проект включает веб-приложение <strong>PWA для iOS</strong>! Откройте файл <code>three_mens_morris_3d.html</code> или онлайн-ссылку из Colab в <strong>Safari на iPhone</strong> → нажмите <strong>«Поделиться»</strong> → <strong>«На экран „Домой“»</strong>. Иконка появится на рабочем столе iPhone и запустится на весь экран 1-в-1 без рамок браузера.<br/>
+            • <strong>Игра по сети:</strong> оба игрока открывают это окно (кнопка глобуса сверху), один создаёт 4-значный код, второй вводит его — ходы синхронизируются в реальном времени!
+          </p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-amber-500/20 flex justify-end">
+        <button id="btn-close-online-bottom" type="button" class="action-btn w-full">
+          Вернуться к столу
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. SYNTHESIZED SOUND ENGINE (Web Audio API - Realistic Wood, Brass & Chime)
+      // =========================================================================
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.enabled = true;
+        }
+
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+
+        playSelect() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(780, now + 0.065);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.075);
+        }
+
+        playWoodPlace(isHeavy = true) {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          // Rich wooden thud + brass ring resonance
+          const osc = this.ctx.createOscillator();
+          const oscGain = this.ctx.createGain();
+          osc.type = 'triangle';
+          const baseFreq = isHeavy ? 145 : 185;
+          osc.frequency.setValueAtTime(baseFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(48, now + 0.09);
+
+          oscGain.gain.setValueAtTime(0.32, now);
+          oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+          osc.connect(oscGain);
+          oscGain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+
+          // Crisp click transient
+          const clickOsc = this.ctx.createOscillator();
+          const clickGain = this.ctx.createGain();
+          clickOsc.type = 'sine';
+          clickOsc.frequency.setValueAtTime(1120, now);
+          clickOsc.frequency.exponentialRampToValueAtTime(290, now + 0.025);
+          clickGain.gain.setValueAtTime(0.14, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.028);
+          clickOsc.connect(clickGain);
+          clickGain.connect(this.ctx.destination);
+          clickOsc.start(now);
+          clickOsc.stop(now + 0.03);
+        }
+
+        playWinChord() {
+          if (!this.enabled) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gain.gain.setValueAtTime(0.001, now + idx * 0.07);
+            gain.gain.linearRampToValueAtTime(0.14, now + idx * 0.07 + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.07 + 0.85);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.9);
+          });
+        }
+      }
+
+      const sound = new SoundEngine();
+
+      // =========================================================================
+      // 2. THREE MEN'S MORRIS GAME LOGIC & MINIMAX AI
+      // =========================================================================
+      // Board indices:
+      // 0  1  2
+      // 3  4  5
+      // 6  7  8
+
+      const ORTHOGONAL_LINES = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8]
+      ];
+
+      const DIAGONAL_LINES = [
+        [0, 4, 8],
+        [2, 4, 6]
+      ];
+
+      const ADJACENCY_WITH_DIAG = {
+        0: [1, 3, 4],
+        1: [0, 2, 4],
+        2: [1, 5, 4],
+        3: [0, 6, 4],
+        4: [0, 1, 2, 3, 5, 6, 7, 8],
+        5: [2, 8, 4],
+        6: [3, 7, 4],
+        7: [6, 8, 4],
+        8: [5, 7, 4]
+      };
+
+      const ADJACENCY_NO_DIAG = {
+        0: [1, 3],
+        1: [0, 2, 4],
+        2: [1, 5],
+        3: [0, 6, 4],
+        4: [1, 3, 5, 7],
+        5: [2, 8, 4],
+        6: [3, 7],
+        7: [6, 8, 4],
+        8: [5, 7]
+      };
+
+      const gameState = {
+        board: Array(9).fill(0), // 0 = empty, 1 = White (Ivory), 2 = Black (Obsidian)
+        turn: 1,                 // 1 or 2
+        placedCount: { 1: 0, 2: 0 },
+        selectedNode: null,
+        winner: 0,
+        winningLine: null,
+        history: [],
+        scores: { 1: 0, 2: 0 },
+        opponentMode: 'pvp',     // 'pvp', 'ai_smart', 'ai_casual', 'online'
+        useDiagonals: true,
+        autoRotateCamera: false,
+        hintEdge: null,
+        isAnimating: false,
+        onlineRole: null,        // null, 1 (Host / White), or 2 (Guest / Black)
+        onlineConnected: false,
+        roomCode: ''
+      };
+
+      function getWinningLines() {
+        return gameState.useDiagonals
+          ? ORTHOGONAL_LINES.concat(DIAGONAL_LINES)
+          : ORTHOGONAL_LINES;
+      }
+
+      function getNeighbors(nodeIdx) {
+        return gameState.useDiagonals
+          ? ADJACENCY_WITH_DIAG[nodeIdx]
+          : ADJACENCY_NO_DIAG[nodeIdx];
+      }
+
+      function getPhase(placedCountObj = gameState.placedCount) {
+        return (placedCountObj[1] < 3 || placedCountObj[2] < 3) ? 'placement' : 'movement';
+      }
+
+      function checkWinnerOnBoard(board) {
+        const lines = getWinningLines();
+        for (let i = 0; i < lines.length; i++) {
+          const [a, b, c] = lines[i];
+          if (board[a] !== 0 && board[a] === board[b] && board[a] === board[c]) {
+            return { winner: board[a], line: [a, b, c] };
+          }
+        }
+        return { winner: 0, line: null };
+      }
+
+      function getLegalMoves(board, placedCount, player) {
+        const phase = (placedCount[1] < 3 || placedCount[2] < 3) ? 'placement' : 'movement';
+        const moves = [];
+        if (phase === 'placement') {
+          for (let i = 0; i < 9; i++) {
+            if (board[i] === 0) {
+              moves.push({ type: 'place', from: null, to: i });
+            }
+          }
+        } else {
+          for (let i = 0; i < 9; i++) {
+            if (board[i] === player) {
+              const neighbors = getNeighbors(i);
+              for (let n of neighbors) {
+                if (board[n] === 0) {
+                  moves.push({ type: 'move', from: i, to: n });
+                }
+              }
+            }
+          }
+        }
+        return moves;
+      }
+
+      // Minimax with Alpha-Beta Pruning for Smart AI & Hint System
+      function evaluateState(board, placedCount, depth, maxPlayer) {
+        const res = checkWinnerOnBoard(board);
+        if (res.winner === maxPlayer) return 100 - depth;
+        if (res.winner !== 0) return depth - 100;
+
+        // Heuristic: center control + two-in-a-row threats
+        let score = 0;
+        const opp = maxPlayer === 1 ? 2 : 1;
+        if (board[4] === maxPlayer) score += 6;
+        else if (board[4] === opp) score -= 6;
+
+        const lines = getWinningLines();
+        for (const [a, b, c] of lines) {
+          const vals = [board[a], board[b], board[c]];
+          const myCount = vals.filter(v => v === maxPlayer).length;
+          const oppCount = vals.filter(v => v === opp).length;
+          if (myCount === 2 && oppCount === 0) score += 12;
+          if (oppCount === 2 && myCount === 0) score -= 14;
+        }
+        return score;
+      }
+
+      function computeBestMove(player, maxDepth = 6) {
+        const legalMoves = getLegalMoves(gameState.board, gameState.placedCount, player);
+        if (legalMoves.length === 0) return null;
+
+        // Casual AI picks winning move if immediate, otherwise semi-random
+        if (gameState.opponentMode === 'ai_casual' && player === 2) {
+          for (const mv of legalMoves) {
+            const nextB = gameState.board.slice();
+            if (mv.type === 'place') nextB[mv.to] = player;
+            else { nextB[mv.from] = 0; nextB[mv.to] = player; }
+            if (checkWinnerOnBoard(nextB).winner === player) return mv;
+          }
+          if (Math.random() < 0.55) {
+            return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+          }
+        }
+
+        function minimax(board, placedCount, depth, isMax, alpha, beta, currentTurn) {
+          const winCheck = checkWinnerOnBoard(board);
+          if (winCheck.winner !== 0 || depth >= maxDepth) {
+            return evaluateState(board, placedCount, depth, player);
+          }
+
+          const moves = getLegalMoves(board, placedCount, currentTurn);
+          if (moves.length === 0) {
+            return isMax ? -50 : 50;
+          }
+
+          const nextTurn = currentTurn === 1 ? 2 : 1;
+
+          if (isMax) {
+            let best = -Infinity;
+            for (const mv of moves) {
+              const nb = board.slice();
+              const npc = { 1: placedCount[1], 2: placedCount[2] };
+              if (mv.type === 'place') {
+                nb[mv.to] = currentTurn;
+                npc[currentTurn]++;
+              } else {
+                nb[mv.from] = 0;
+                nb[mv.to] = currentTurn;
+              }
+              const val = minimax(nb, npc, depth + 1, false, alpha, beta, nextTurn);
+              best = Math.max(best, val);
+              alpha = Math.max(alpha, best);
+              if (beta <= alpha) break;
+            }
+            return best;
+          } else {
+            let best = Infinity;
+            for (const mv of moves) {
+              const nb = board.slice();
+              const npc = { 1: placedCount[1], 2: placedCount[2] };
+              if (mv.type === 'place') {
+                nb[mv.to] = currentTurn;
+                npc[currentTurn]++;
+              } else {
+                nb[mv.from] = 0;
+                nb[mv.to] = currentTurn;
+              }
+              const val = minimax(nb, npc, depth + 1, true, alpha, beta, nextTurn);
+              best = Math.min(best, val);
+              beta = Math.min(beta, best);
+              if (beta <= alpha) break;
+            }
+            return best;
+          }
+        }
+
+        let bestScore = -Infinity;
+        let bestCandidates = [];
+
+        for (const mv of legalMoves) {
+          const nb = gameState.board.slice();
+          const npc = { 1: gameState.placedCount[1], 2: gameState.placedCount[2] };
+          if (mv.type === 'place') {
+            nb[mv.to] = player;
+            npc[player]++;
+          } else {
+            nb[mv.from] = 0;
+            nb[mv.to] = player;
+          }
+          const score = minimax(nb, npc, 1, false, -Infinity, Infinity, player === 1 ? 2 : 1);
+          if (score > bestScore) {
+            bestScore = score;
+            bestCandidates = [mv];
+          } else if (score === bestScore) {
+            bestCandidates.push(mv);
+          }
+        }
+
+        return bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
+      }
+
+      // =========================================================================
+      // 3. ULTRA-HD PROCEDURAL PBR TEXTURE ENGINE (2K FBM Noise, Wood, Stone, Metal, Velvet, Marble)
+      // =========================================================================
+      // Deterministic fast 2D Value Noise & Fractal Brownian Motion (FBM) for photorealistic materials
+      const _perm = new Uint8Array(512);
+      (function initNoiseTable() {
+        let s = 1337420;
+        const p = new Uint8Array(256);
+        for (let i = 0; i < 256; i++) p[i] = i;
+        for (let i = 255; i > 0; i--) {
+          s = (s * 1664525 + 1013904223) >>> 0;
+          const j = s % (i + 1);
+          const tmp = p[i];
+          p[i] = p[j];
+          p[j] = tmp;
+        }
+        for (let i = 0; i < 512; i++) _perm[i] = p[i & 255];
+      })();
+
+      function noise2D(x, y) {
+        const xi = Math.floor(x) & 255;
+        const yi = Math.floor(y) & 255;
+        const xf = x - Math.floor(x);
+        const yf = y - Math.floor(y);
+        // Quintic Perlin fade curve (6t^5 - 15t^4 + 10t^3) eliminates blocky 2nd-derivative grid artifacts on bump maps
+        const u = xf * xf * xf * (xf * (xf * 6.0 - 15.0) + 10.0);
+        const v = yf * yf * yf * (yf * (yf * 6.0 - 15.0) + 10.0);
+        const aa = _perm[_perm[xi] + yi];
+        const ab = _perm[_perm[xi] + yi + 1];
+        const ba = _perm[_perm[xi + 1] + yi];
+        const bb = _perm[_perm[xi + 1] + yi + 1];
+        const x1 = aa + u * (ba - aa);
+        const x2 = ab + u * (bb - ab);
+        return (x1 + v * (x2 - x1)) * (1.0 / 255.0);
+      }
+
+      // 100% mathematically periodic 2D noise: wraps u and v into [0,1) FIRST so any phase offset is strictly seamless!
+      function noise2DPeriodic(u, v, px, py) {
+        const uw = ((u % 1.0) + 1.0) % 1.0;
+        const vw = ((v % 1.0) + 1.0) % 1.0;
+        const x = uw * px;
+        const y = vw * py;
+        const x0 = Math.floor(x) % px;
+        const y0 = Math.floor(y) % py;
+        const x1 = (x0 + 1) % px;
+        const y1 = (y0 + 1) % py;
+        const xf = x - Math.floor(x);
+        const yf = y - Math.floor(y);
+        const sx = xf * xf * xf * (xf * (xf * 6.0 - 15.0) + 10.0);
+        const sy = yf * yf * yf * (yf * (yf * 6.0 - 15.0) + 10.0);
+        const aa = _perm[_perm[x0 & 255] + (y0 & 255)];
+        const ab = _perm[_perm[x0 & 255] + (y1 & 255)];
+        const ba = _perm[_perm[x1 & 255] + (y0 & 255)];
+        const bb = _perm[_perm[x1 & 255] + (y1 & 255)];
+        const lerp1 = aa + sx * (ba - aa);
+        const lerp2 = ab + sx * (bb - ab);
+        return (lerp1 + sy * (lerp2 - lerp1)) * (1.0 / 255.0);
+      }
+
+      function fbm2DPeriodic(u, v, basePx, basePy, octaves = 5) {
+        let val = 0.0;
+        let amp = 0.5;
+        let mult = 1;
+        for (let i = 0; i < octaves; i++) {
+          val += amp * noise2DPeriodic(u, v, basePx * mult, basePy * mult);
+          mult *= 2;
+          amp *= 0.5;
+        }
+        return val;
+      }
+
+      function fbm2D(x, y, octaves = 5) {
+        let val = 0.0;
+        let amp = 0.5;
+        let freq = 1.0;
+        for (let i = 0; i < octaves; i++) {
+          val += amp * noise2D(x * freq, y * freq);
+          freq *= 2.0;
+          amp *= 0.5;
+        }
+        return val;
+      }
+
+      function configureTexturePBR(tex, maxAniso, repeatX = 1, repeatY = 1) {
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if (repeatX !== 1 || repeatY !== 1) {
+          tex.repeat.set(repeatX, repeatY);
+        }
+        tex.anisotropy = maxAniso;
+        tex.needsUpdate = true;
+        return tex;
+      }
+
+      // 3.1 Fine Lacquered Caucasian Walnut Wood (Rich Micro-Fibers, Subtle Growth Veins, Zero Zebra Stripes)
+      function createWalnutWoodPBR(darkTone, maxAniso) {
+        const size = 1024;
+        const diffCanvas = document.createElement('canvas');
+        diffCanvas.width = size;
+        diffCanvas.height = size;
+        const diffCtx = diffCanvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        const roughCanvas = document.createElement('canvas');
+        roughCanvas.width = size;
+        roughCanvas.height = size;
+        const roughCtx = roughCanvas.getContext('2d');
+
+        const diffImg = diffCtx.createImageData(size, size);
+        const bumpImg = bumpCtx.createImageData(size, size);
+        const roughImg = roughCtx.createImageData(size, size);
+
+        const dData = diffImg.data;
+        const bData = bumpImg.data;
+        const rData = roughImg.data;
+
+        const baseR = darkTone ? 58 : 92;
+        const baseG = darkTone ? 34 : 54;
+        const baseB = darkTone ? 19 : 29;
+        const TWO_PI = Math.PI * 2.0;
+
+        for (let y = 0; y < size; y++) {
+          const ny = y / size;
+          for (let x = 0; x < size; x++) {
+            const nx = x / size;
+
+            // Multi-scale organic walnut grain: thin dark latewood growth lines separated by wide warm heartwood
+            const warpMacro = fbm2DPeriodic(nx, ny, 3, 2, 4) - 0.5;
+            const warpDetail = fbm2DPeriodic(nx + 0.31, ny + 0.19, 6, 4, 3) - 0.5;
+
+            const gCoord = nx * 16.0 + warpMacro * 3.8 + warpDetail * 1.15;
+            const frac = gCoord - Math.floor(gCoord);
+            // Smooth asymmetric wood ring profile: wide warm earlywood + narrow dark latewood vein
+            const latewoodVein = Math.pow(0.5 - 0.5 * Math.cos(frac * TWO_PI), 3.2);
+
+            // High-definition longitudinal wood fibers (anisotropic fine streaks along Y)
+            const fiber1 = noise2DPeriodic(nx, ny, 128, 12);
+            const fiber2 = noise2DPeriodic(nx, ny, 256, 24);
+            const fineStreaks = (fiber1 * 0.6 + fiber2 * 0.4) - 0.5;
+
+            // Gentle large-scale figure variation
+            const figureCloud = fbm2DPeriodic(nx + 0.12, ny + 0.44, 4, 4, 3) - 0.5;
+
+            const shade = Math.max(
+              0.52,
+              Math.min(
+                1.24,
+                0.94 - latewoodVein * 0.25 + fineStreaks * 0.13 + figureCloud * 0.12
+              )
+            );
+
+            // Subtle golden-amber chatoyancy in the heartwood
+            const chatoyancy = (1.0 - latewoodVein) * (0.5 + figureCloud) * (darkTone ? 9 : 16);
+
+            const idx = (y * size + x) * 4;
+            dData[idx] = Math.min(255, Math.max(0, Math.round(baseR * shade + chatoyancy)));
+            dData[idx + 1] = Math.min(255, Math.max(0, Math.round(baseG * shade + chatoyancy * 0.62)));
+            dData[idx + 2] = Math.min(255, Math.max(0, Math.round(baseB * shade + chatoyancy * 0.25)));
+            dData[idx + 3] = 255;
+
+            // Micro-fiber height map
+            const hVal = Math.min(
+              255,
+              Math.max(0, Math.round((0.52 - latewoodVein * 0.12 + fineStreaks * 0.20) * 255))
+            );
+            bData[idx] = bData[idx + 1] = bData[idx + 2] = hVal;
+            bData[idx + 3] = 255;
+
+            // Satin French-polish roughness map
+            const rBase = darkTone ? 70 : 58;
+            const rVal = Math.min(255, Math.max(22, Math.round(rBase + latewoodVein * 14 - fineStreaks * 16)));
+            rData[idx] = rData[idx + 1] = rData[idx + 2] = rVal;
+            rData[idx + 3] = 255;
+          }
+        }
+
+        diffCtx.putImageData(diffImg, 0, 0);
+        bumpCtx.putImageData(bumpImg, 0, 0);
+        roughCtx.putImageData(roughImg, 0, 0);
+
+        const map = configureTexturePBR(new THREE.CanvasTexture(diffCanvas), maxAniso, 1, 1);
+        const bumpMap = configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso, 1, 1);
+        const roughnessMap = configureTexturePBR(new THREE.CanvasTexture(roughCanvas), maxAniso, 1, 1);
+
+        return { map, bumpMap, roughnessMap };
+      }
+
+      // 3.1b Translucent Paraffin / Beeswax Candle Texture (Smooth Wax Micro-Crystals, Melted Drips & Warm Subsurface Glow)
+      function createParaffinWaxPBR(maxAniso) {
+        const size = 512;
+        const diffCanvas = document.createElement('canvas');
+        diffCanvas.width = size;
+        diffCanvas.height = size;
+        const diffCtx = diffCanvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        const emissiveCanvas = document.createElement('canvas');
+        emissiveCanvas.width = size;
+        emissiveCanvas.height = size;
+        const emissiveCtx = emissiveCanvas.getContext('2d');
+
+        const dImg = diffCtx.createImageData(size, size);
+        const bImg = bumpCtx.createImageData(size, size);
+        const eImg = emissiveCtx.createImageData(size, size);
+
+        const d = dImg.data;
+        const b = bImg.data;
+        const e = eImg.data;
+        const TWO_PI = Math.PI * 2.0;
+
+        // 4 organic wax drip streams around the candle circumference [center_nx, width_nx, length_ny]
+        const drips = [
+          [0.14, 0.022, 0.36],
+          [0.39, 0.026, 0.52],
+          [0.67, 0.020, 0.29],
+          [0.86, 0.024, 0.44]
+        ];
+
+        for (let y = 0; y < size; y++) {
+          // ny = 0 is top of cylinder (near flame), ny = 1 is bottom of candle
+          const ny = y / size;
+          for (let x = 0; x < size; x++) {
+            const nx = x / size;
+
+            // Smooth translucent paraffin micro-crystalline cloud & subtle hand-molded wax texture
+            const crystal = fbm2DPeriodic(nx, ny, 6, 6, 4);
+            const subCrystal = fbm2DPeriodic(nx + 0.33, ny + 0.17, 12, 12, 3);
+            const finePore = noise2DPeriodic(nx, ny, 32, 32) - 0.5;
+
+            // Compute smooth rounded wax drip trails starting from top rim and terminating in a teardrop bead
+            let dripHeight = 0.0;
+            // Wavy melted top collar around the very top edge (ny < 0.08)
+            const topCollarLen = 0.045 + 0.025 * Math.sin(nx * TWO_PI * 5.0 + 0.5);
+            if (ny < topCollarLen) {
+              const tCol = 1.0 - ny / topCollarLen;
+              dripHeight += tCol * tCol * 0.25;
+            }
+
+            for (let k = 0; k < drips.length; k++) {
+              const dCx = drips[k][0];
+              const dW = drips[k][1];
+              const dLen = drips[k][2];
+              // Periodic distance in X with slight organic wiggle along Y
+              const wiggle = (crystal - 0.5) * 0.012;
+              let dx = Math.abs(nx - dCx + wiggle);
+              if (dx > 0.5) dx = 1.0 - dx;
+              if (ny <= dLen && dx < dW * 1.8) {
+                const along = ny / dLen; // 0 at top, 1 at bottom tip of drip
+                // Slightly wider at the bottom teardrop bead (along ~ 0.85..0.98)
+                const localW = dW * (0.75 + 0.45 * Math.sin(along * Math.PI));
+                if (dx < localW) {
+                  const across = dx / localW;
+                  const profileX = Math.sqrt(Math.max(0.0, 1.0 - across * across));
+                  const fadeY = along < 0.85 ? 1.0 : Math.max(0.0, (1.0 - along) / 0.15);
+                  const bead = Math.exp(-Math.pow((along - 0.88) / 0.09, 2.0)) * 0.45;
+                  dripHeight = Math.max(dripHeight, profileX * (0.28 * fadeY + bead));
+                }
+              }
+            }
+
+            // Subsurface scattering (SSS) warm amber-gold glow near the top of the candle (ny < 0.48)
+            const sssGlow = Math.pow(Math.max(0.0, 1.0 - ny * 2.0), 1.8);
+
+            // Warm ivory-cream paraffin base with golden subsurface warmth
+            const baseR = 247 + (crystal - 0.5) * 9 + (subCrystal - 0.5) * 5 + dripHeight * 12;
+            const baseG = 234 + (crystal - 0.5) * 11 - sssGlow * 14 + dripHeight * 9;
+            const baseB = 203 + (crystal - 0.5) * 13 - sssGlow * 46 + dripHeight * 6;
+
+            const idx = (y * size + x) * 4;
+            d[idx] = Math.min(255, Math.max(0, Math.round(baseR)));
+            d[idx + 1] = Math.min(255, Math.max(0, Math.round(baseG)));
+            d[idx + 2] = Math.min(255, Math.max(0, Math.round(baseB)));
+            d[idx + 3] = 255;
+
+            // Smooth continuous height/bump map
+            const hVal = Math.min(
+              255,
+              Math.max(0, Math.round((0.46 + (crystal - 0.5) * 0.14 + (subCrystal - 0.5) * 0.08 + finePore * 0.04 + dripHeight * 0.75) * 255))
+            );
+            b[idx] = b[idx + 1] = b[idx + 2] = hVal;
+            b[idx + 3] = 255;
+
+            // Emissive map: warm candle flame light penetrating the top of the translucent paraffin
+            e[idx] = Math.min(255, Math.round(sssGlow * 255));
+            e[idx + 1] = Math.min(255, Math.round(sssGlow * 148));
+            e[idx + 2] = Math.min(255, Math.round(sssGlow * 40));
+            e[idx + 3] = 255;
+          }
+        }
+
+        diffCtx.putImageData(dImg, 0, 0);
+        bumpCtx.putImageData(bImg, 0, 0);
+        emissiveCtx.putImageData(eImg, 0, 0);
+
+        return {
+          map: configureTexturePBR(new THREE.CanvasTexture(diffCanvas), maxAniso),
+          bumpMap: configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso),
+          emissiveMap: configureTexturePBR(new THREE.CanvasTexture(emissiveCanvas), maxAniso)
+        };
+      }
+
+      // 3.2 Ultra-HD 2048x2048 Roman Travertine & Inlaid Marquetry Board Surface (Diffuse + Bump + Roughness)
+      function createTravertineBoardPBR(maxAniso) {
+        const size = 2048;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        // First synthesize 1024x1024 mineral FBM base and scale smoothly to 2048x2048 for speed + crisp vector engraving
+        const noiseSize = 1024;
+        const nCanvas = document.createElement('canvas');
+        nCanvas.width = noiseSize;
+        nCanvas.height = noiseSize;
+        const nCtx = nCanvas.getContext('2d');
+        const nImg = nCtx.createImageData(noiseSize, noiseSize);
+        const nData = nImg.data;
+
+        const bNoiseCanvas = document.createElement('canvas');
+        bNoiseCanvas.width = noiseSize;
+        bNoiseCanvas.height = noiseSize;
+        const bNoiseCtx = bNoiseCanvas.getContext('2d');
+        const bImg = bNoiseCtx.createImageData(noiseSize, noiseSize);
+        const bData = bImg.data;
+
+        for (let y = 0; y < noiseSize; y++) {
+          const ny = y / noiseSize;
+          for (let x = 0; x < noiseSize; x++) {
+            const nx = x / noiseSize;
+            const warpX = fbm2D(nx * 5.0, ny * 5.0, 4);
+            const warpY = fbm2D(nx * 5.0 + 9.2, ny * 5.0 + 4.7, 4);
+            const cloud = fbm2D(nx * 7.5 + warpX * 1.6, ny * 7.5 + warpY * 1.6, 5);
+            const fineGrain = noise2D(nx * 160.0, ny * 160.0);
+
+            // Sharp mineral calcite veins via ridged multifractal abs(sin)
+            const ridge1 = 1.0 - Math.abs(Math.sin((nx * 6.0 + ny * 4.5 + warpX * 2.8) * Math.PI));
+            const vein1 = Math.pow(ridge1, 14.0);
+            const ridge2 = 1.0 - Math.abs(Math.sin((nx * 9.0 - ny * 7.0 + warpY * 3.1) * Math.PI));
+            const vein2 = Math.pow(ridge2, 18.0);
+
+            // Travertine natural micro-pitting
+            const pit = (fineGrain < 0.12 && cloud < 0.48) ? -0.09 : 0.0;
+
+            // Radial warm parchment-ivory toning
+            const dx = nx - 0.5, dy = ny - 0.5;
+            const distSq = dx * dx + dy * dy;
+            const vignette = 1.04 - distSq * 0.52;
+
+            const baseR = 232, baseG = 212, baseB = 178;
+            const factor = (0.84 + cloud * 0.24 + (fineGrain - 0.5) * 0.05 + pit) * vignette;
+
+            let r = baseR * factor - vein1 * 38 + vein2 * 22;
+            let g = baseG * factor - vein1 * 42 + vein2 * 18;
+            let b = baseB * factor - vein1 * 46 + vein2 * 12;
+
+            const idx = (y * noiseSize + x) * 4;
+            nData[idx] = Math.min(255, Math.max(0, Math.round(r)));
+            nData[idx + 1] = Math.min(255, Math.max(0, Math.round(g)));
+            nData[idx + 2] = Math.min(255, Math.max(0, Math.round(b)));
+            nData[idx + 3] = 255;
+
+            const h = Math.min(255, Math.max(0, Math.round((0.65 + cloud * 0.2 + (fineGrain - 0.5) * 0.12 + pit * 2.2 - vein1 * 0.18) * 255)));
+            bData[idx] = bData[idx + 1] = bData[idx + 2] = h;
+            bData[idx + 3] = 255;
+          }
+        }
+        nCtx.putImageData(nImg, 0, 0);
+        bNoiseCtx.putImageData(bImg, 0, 0);
+
+        ctx.drawImage(nCanvas, 0, 0, size, size);
+        bumpCtx.drawImage(bNoiseCanvas, 0, 0, size, size);
+
+        // Crisp 2048x2048 Royal Marquetry & Compass Rose Intarsia Engraving
+        function drawEngravedFiligree(targetCtx, isBump) {
+          targetCtx.save();
+          targetCtx.translate(size / 2, size / 2);
+
+          const strokeMain = isBump ? 'rgba(40, 40, 40, 0.85)' : 'rgba(116, 78, 32, 0.52)';
+          const strokeGold = isBump ? 'rgba(215, 215, 215, 0.7)' : 'rgba(188, 142, 62, 0.42)';
+
+          // Outer concentric marquetry rings
+          targetCtx.strokeStyle = strokeMain;
+          targetCtx.lineWidth = 6;
+          targetCtx.beginPath();
+          targetCtx.arc(0, 0, 890, 0, Math.PI * 2);
+          targetCtx.stroke();
+
+          targetCtx.strokeStyle = strokeGold;
+          targetCtx.lineWidth = 2.5;
+          targetCtx.beginPath();
+          targetCtx.arc(0, 0, 868, 0, Math.PI * 2);
+          targetCtx.stroke();
+
+          targetCtx.strokeStyle = strokeMain;
+          targetCtx.lineWidth = 3;
+          targetCtx.beginPath();
+          targetCtx.arc(0, 0, 520, 0, Math.PI * 2);
+          targetCtx.stroke();
+
+          // 32-point Renaissance Compass Rose in center
+          for (let a = 0; a < 32; a++) {
+            const ang = (a * Math.PI) / 16;
+            const isMajor = a % 4 === 0;
+            const isMid = a % 2 === 0;
+            const rIn = isMajor ? 85 : (isMid ? 115 : 145);
+            const rOut = isMajor ? 330 : (isMid ? 255 : 195);
+            targetCtx.strokeStyle = isMajor ? strokeMain : strokeGold;
+            targetCtx.lineWidth = isMajor ? 4.0 : 2.0;
+            targetCtx.beginPath();
+            targetCtx.moveTo(Math.cos(ang) * rIn, Math.sin(ang) * rIn);
+            targetCtx.lineTo(Math.cos(ang) * rOut, Math.sin(ang) * rOut);
+            targetCtx.stroke();
+          }
+
+          targetCtx.restore();
+
+          // Double Renaissance border frame with corner rosettes
+          targetCtx.strokeStyle = strokeMain;
+          targetCtx.lineWidth = 14;
+          targetCtx.strokeRect(52, 52, size - 104, size - 104);
+
+          targetCtx.strokeStyle = strokeGold;
+          targetCtx.lineWidth = 4;
+          targetCtx.strokeRect(78, 78, size - 156, size - 156);
+          targetCtx.strokeRect(94, 94, size - 188, size - 188);
+
+          const corners = [[140, 140], [size - 140, 140], [140, size - 140], [size - 140, size - 140]];
+          corners.forEach(([cx, cy]) => {
+            targetCtx.strokeStyle = strokeMain;
+            targetCtx.lineWidth = 3.5;
+            targetCtx.beginPath();
+            targetCtx.arc(cx, cy, 34, 0, Math.PI * 2);
+            targetCtx.stroke();
+          });
+        }
+
+        drawEngravedFiligree(ctx, false);
+        drawEngravedFiligree(bumpCtx, true);
+
+        const map = configureTexturePBR(new THREE.CanvasTexture(canvas), maxAniso);
+        const bumpMap = configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso);
+        return { map, bumpMap };
+      }
+
+      // 3.3 High-Resolution Carrara Ivory & Golden-Veined Obsidian Marble for Pieces (1024x1024 + Bump/Roughness)
+      function createPieceMarblePBR(isWhite, maxAniso) {
+        const size = 1024;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        const img = ctx.createImageData(size, size);
+        const bImg = bumpCtx.createImageData(size, size);
+        const d = img.data;
+        const b = bImg.data;
+
+        for (let y = 0; y < size; y++) {
+          const ny = y / size;
+          for (let x = 0; x < size; x++) {
+            const nx = x / size;
+            const w1 = fbm2D(nx * 4.5 + (isWhite ? 0.0 : 3.7), ny * 4.5, 5);
+            const w2 = fbm2D(nx * 9.0 + w1 * 2.2, ny * 9.0 - w1 * 1.8, 4);
+
+            // Fine mineral vein networks
+            const veinWave = Math.abs(Math.sin((nx * 5.5 + ny * 3.5 + w1 * 3.4) * Math.PI));
+            const primaryVein = Math.pow(1.0 - veinWave, 16.0);
+            const secWave = Math.abs(Math.sin((nx * 11.0 - ny * 8.5 + w2 * 2.6) * Math.PI));
+            const goldVein = Math.pow(1.0 - secWave, 22.0);
+
+            const idx = (y * size + x) * 4;
+            if (isWhite) {
+              // Warm royal ivory / Carrara alabaster with subtle warm pearl & gold-ochre veins
+              const base = 242 + (w1 - 0.5) * 18;
+              const r = base - primaryVein * 26 + goldVein * 14;
+              const g = (base - 6) - primaryVein * 32 + goldVein * 4;
+              const bl = (base - 18) - primaryVein * 40 - goldVein * 18;
+              d[idx] = Math.min(255, Math.max(0, Math.round(r)));
+              d[idx + 1] = Math.min(255, Math.max(0, Math.round(g)));
+              d[idx + 2] = Math.min(255, Math.max(0, Math.round(bl)));
+              d[idx + 3] = 255;
+
+              const h = Math.min(255, Math.max(0, Math.round((0.72 + w2 * 0.14 - primaryVein * 0.22) * 255)));
+              b[idx] = b[idx + 1] = b[idx + 2] = h;
+              b[idx + 3] = 255;
+            } else {
+              // Deep volcanic Portoro black marble / obsidian with gleaming golden-bronze veins
+              const base = 24 + (w1 - 0.5) * 14;
+              const r = base + primaryVein * 42 + goldVein * 185;
+              const g = (base - 2) + primaryVein * 28 + goldVein * 132;
+              const bl = (base - 4) + primaryVein * 14 + goldVein * 58;
+              d[idx] = Math.min(255, Math.max(0, Math.round(r)));
+              d[idx + 1] = Math.min(255, Math.max(0, Math.round(g)));
+              d[idx + 2] = Math.min(255, Math.max(0, Math.round(bl)));
+              d[idx + 3] = 255;
+
+              const h = Math.min(255, Math.max(0, Math.round((0.68 + w2 * 0.14 + goldVein * 0.25) * 255)));
+              b[idx] = b[idx + 1] = b[idx + 2] = h;
+              b[idx + 3] = 255;
+            }
+          }
+        }
+
+        ctx.putImageData(img, 0, 0);
+        bumpCtx.putImageData(bImg, 0, 0);
+
+        const map = configureTexturePBR(new THREE.CanvasTexture(canvas), maxAniso);
+        const bumpMap = configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso);
+        return { map, bumpMap };
+      }
+
+      // 3.4 Brushed Anisotropic Gold/Brass & Aged Patina Bronze Metallic Texture Maps
+      function createBrushedMetalPBR(isBrass, maxAniso) {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        const img = ctx.createImageData(size, size);
+        const bImg = bumpCtx.createImageData(size, size);
+        const d = img.data;
+        const b = bImg.data;
+
+        const baseR = isBrass ? 226 : 148;
+        const baseG = isBrass ? 178 : 104;
+        const baseB = isBrass ? 86 : 54;
+
+        for (let y = 0; y < size; y++) {
+          const ny = y / size;
+          for (let x = 0; x < size; x++) {
+            const nx = x / size;
+            // Fine periodic brushed directional micro-scratches + subtle patina cloud
+            const brush = noise2DPeriodic(nx, ny, 128, 16) * 0.65 + noise2DPeriodic(nx, ny, 32, 128) * 0.35;
+            const patina = fbm2DPeriodic(nx, ny, 8, 8, 4);
+            const factor = 0.84 + (brush - 0.5) * 0.22 + (patina - 0.5) * (isBrass ? 0.14 : 0.28);
+
+            const idx = (y * size + x) * 4;
+            d[idx] = Math.min(255, Math.max(0, Math.round(baseR * factor)));
+            d[idx + 1] = Math.min(255, Math.max(0, Math.round(baseG * factor)));
+            d[idx + 2] = Math.min(255, Math.max(0, Math.round(baseB * factor)));
+            d[idx + 3] = 255;
+
+            const h = Math.min(255, Math.max(0, Math.round((0.4 + brush * 0.45 + patina * 0.15) * 255)));
+            b[idx] = b[idx + 1] = b[idx + 2] = h;
+            b[idx + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+        bumpCtx.putImageData(bImg, 0, 0);
+
+        const map = configureTexturePBR(new THREE.CanvasTexture(canvas), maxAniso, 2, 2);
+        const bumpMap = configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso, 2, 2);
+        return { map, bumpMap };
+      }
+
+      // 3.5 Royal Burgundy Crushed Velvet / Plush Felt Texture for Piece Trays
+      function createVelvetFabricPBR(maxAniso) {
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const bumpCanvas = document.createElement('canvas');
+        bumpCanvas.width = size;
+        bumpCanvas.height = size;
+        const bumpCtx = bumpCanvas.getContext('2d');
+
+        const img = ctx.createImageData(size, size);
+        const bImg = bumpCtx.createImageData(size, size);
+        const d = img.data;
+        const b = bImg.data;
+
+        for (let y = 0; y < size; y++) {
+          const ny = y / size;
+          for (let x = 0; x < size; x++) {
+            const nx = x / size;
+            // Seamless periodic crushed velvet nap swirl + high-frequency textile weave
+            const napSwirl = fbm2DPeriodic(nx, ny, 6, 6, 4);
+            const weave = ((x ^ y) & 1) * 0.06 + noise2DPeriodic(nx, ny, 128, 128) * 0.22;
+            const sheen = 0.72 + napSwirl * 0.45 + weave;
+
+            const idx = (y * size + x) * 4;
+            d[idx] = Math.min(255, Math.max(0, Math.round(76 * sheen)));
+            d[idx + 1] = Math.min(255, Math.max(0, Math.round(18 * sheen)));
+            d[idx + 2] = Math.min(255, Math.max(0, Math.round(24 * sheen)));
+            d[idx + 3] = 255;
+
+            const h = Math.min(255, Math.max(0, Math.round((0.35 + weave * 1.4 + napSwirl * 0.25) * 255)));
+            b[idx] = b[idx + 1] = b[idx + 2] = h;
+            b[idx + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+        bumpCtx.putImageData(bImg, 0, 0);
+
+        const map = configureTexturePBR(new THREE.CanvasTexture(canvas), maxAniso, 3, 1);
+        const bumpMap = configureTexturePBR(new THREE.CanvasTexture(bumpCanvas), maxAniso, 3, 1);
+        return { map, bumpMap };
+      }
+
+      // =========================================================================
+      // 4. THREE.JS 3D SCENE, DETAILED TABLE, CARVED BOARD & LATHED PIECES
+      // =========================================================================
+      const container = document.getElementById('canvas-container');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0d0907);
+      scene.fog = new THREE.FogExp2(0x0d0907, 0.032);
+
+      const camera = new THREE.PerspectiveCamera(
+        42,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100
+      );
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
+
+      const maxAnisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy() || 8);
+
+      // --- Lighting Setup ---
+      const ambientLight = new THREE.HemisphereLight(0xffeed6, 0x261a12, 0.65);
+      scene.add(ambientLight);
+
+      const mainSpot = new THREE.DirectionalLight(0xfff1d6, 1.28);
+      mainSpot.position.set(5.5, 11.5, 6.2);
+      mainSpot.castShadow = true;
+      mainSpot.shadow.mapSize.width = 2048;
+      mainSpot.shadow.mapSize.height = 2048;
+      mainSpot.shadow.camera.near = 2;
+      mainSpot.shadow.camera.far = 25;
+      const d = 6.2;
+      mainSpot.shadow.camera.left = -d;
+      mainSpot.shadow.camera.right = d;
+      mainSpot.shadow.camera.top = d;
+      mainSpot.shadow.camera.bottom = -d;
+      mainSpot.shadow.bias = -0.0005;
+      scene.add(mainSpot);
+
+      // Warm candle point light on table corner
+      const candleLight = new THREE.PointLight(0xff9d3b, 1.18, 14, 1.8);
+      candleLight.position.set(-3.85, 2.35, -3.55);
+      candleLight.castShadow = true;
+      candleLight.shadow.mapSize.width = 1024;
+      candleLight.shadow.mapSize.height = 1024;
+      candleLight.shadow.bias = -0.001;
+      scene.add(candleLight);
+
+      // Rim fill light for obsidian pieces
+      const rimLight = new THREE.DirectionalLight(0x9bb8ff, 0.38);
+      rimLight.position.set(-6, 5, -5);
+      scene.add(rimLight);
+
+      // --- Shared Ultra-Detailed PBR Materials ---
+      const walnutPBR = createWalnutWoodPBR(false, maxAnisotropy);
+      const darkWoodPBR = createWalnutWoodPBR(true, maxAnisotropy);
+      const boardSurfacePBR = createTravertineBoardPBR(maxAnisotropy);
+      const whiteMarblePBR = createPieceMarblePBR(true, maxAnisotropy);
+      const blackMarblePBR = createPieceMarblePBR(false, maxAnisotropy);
+      const brassPBR = createBrushedMetalPBR(true, maxAnisotropy);
+      const bronzePBR = createBrushedMetalPBR(false, maxAnisotropy);
+      const velvetPBR = createVelvetFabricPBR(maxAnisotropy);
+
+      const tableWoodMat = new THREE.MeshStandardMaterial({
+        map: darkWoodPBR.map,
+        roughnessMap: darkWoodPBR.roughnessMap,
+        roughness: 0.44,
+        metalness: 0.06,
+        bumpMap: darkWoodPBR.bumpMap,
+        bumpScale: 0.008
+      });
+
+      const frameWoodMat = new THREE.MeshStandardMaterial({
+        map: walnutPBR.map,
+        roughnessMap: walnutPBR.roughnessMap,
+        roughness: 0.32,
+        metalness: 0.08,
+        bumpMap: walnutPBR.bumpMap,
+        bumpScale: 0.007
+      });
+
+      const boardTopMat = new THREE.MeshStandardMaterial({
+        map: boardSurfacePBR.map,
+        roughnessMap: boardSurfacePBR.bumpMap,
+        roughness: 0.32,
+        metalness: 0.05,
+        bumpMap: boardSurfacePBR.bumpMap,
+        bumpScale: 0.014
+      });
+
+      const brassMat = new THREE.MeshStandardMaterial({
+        map: brassPBR.map,
+        color: 0xf2c76e,
+        roughnessMap: brassPBR.bumpMap,
+        roughness: 0.22,
+        metalness: 0.88,
+        bumpMap: brassPBR.bumpMap,
+        bumpScale: 0.006
+      });
+
+      const agedBronzeMat = new THREE.MeshStandardMaterial({
+        map: bronzePBR.map,
+        color: 0xb88648,
+        roughnessMap: bronzePBR.bumpMap,
+        roughness: 0.36,
+        metalness: 0.80,
+        bumpMap: bronzePBR.bumpMap,
+        bumpScale: 0.008
+      });
+
+      const velvetTrayMat = new THREE.MeshStandardMaterial({
+        map: velvetPBR.map,
+        roughness: 0.90,
+        metalness: 0.02,
+        bumpMap: velvetPBR.bumpMap,
+        bumpScale: 0.024
+      });
+
+      const ivoryPieceMat = new THREE.MeshStandardMaterial({
+        map: whiteMarblePBR.map,
+        color: 0xfffaf0,
+        roughnessMap: whiteMarblePBR.bumpMap,
+        roughness: 0.18,
+        metalness: 0.06,
+        bumpMap: whiteMarblePBR.bumpMap,
+        bumpScale: 0.009
+      });
+
+      const obsidianPieceMat = new THREE.MeshStandardMaterial({
+        map: blackMarblePBR.map,
+        color: 0xffffff,
+        roughnessMap: blackMarblePBR.bumpMap,
+        roughness: 0.15,
+        metalness: 0.25,
+        bumpMap: blackMarblePBR.bumpMap,
+        bumpScale: 0.009
+      });
+
+      // --- Root Groups ---
+      const worldGroup = new THREE.Group();
+      scene.add(worldGroup);
+
+      const boardGroup = new THREE.Group();
+      worldGroup.add(boardGroup);
+
+      const diagonalGroovesGroup = new THREE.Group();
+      boardGroup.add(diagonalGroovesGroup);
+
+      // =========================================================================
+      // 5. BUILD DETAILED GAMING TABLE, BOARD, TRAYS & TABLETOP PROPS
+      // =========================================================================
+      const NODE_SPACING = 1.65;
+      const BOARD_Y = 0.36; // Top surface height of the board
+
+      // Node coordinates (0..8)
+      const nodePositions = [];
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const x = (col - 1) * NODE_SPACING;
+          const z = (row - 1) * NODE_SPACING;
+          nodePositions.push(new THREE.Vector3(x, BOARD_Y, z));
+        }
+      }
+
+      // Tray slot positions for unplaced pieces (Player 1 on near Z+, Player 2 on far Z-)
+      const trayPositions = {
+        1: [
+          new THREE.Vector3(-1.35, 0.18, 3.35),
+          new THREE.Vector3(0.0, 0.18, 3.35),
+          new THREE.Vector3(1.35, 0.18, 3.35)
+        ],
+        2: [
+          new THREE.Vector3(-1.35, 0.18, -3.35),
+          new THREE.Vector3(0.0, 0.18, -3.35),
+          new THREE.Vector3(1.35, 0.18, -3.35)
+        ]
+      };
+
+      let candleFlameMesh = null;
+      let watchSecondHand = null;
+      let watchMinuteHand = null;
+      let watchHourHand = null;
+
+      function applyPlanarTableUVs(cylinderGeo, scale = 0.11) {
+        // Replace Three.js default polar fan UVs on the cylinder top/bottom caps with planar (X, Z) wood plank UVs
+        // so wood grain runs straight and naturally across the table instead of pinching into radial pie wedges!
+        const pos = cylinderGeo.attributes.position;
+        const norm = cylinderGeo.attributes.normal;
+        const uv = cylinderGeo.attributes.uv;
+        for (let i = 0; i < pos.count; i++) {
+          const ny = norm.getY(i);
+          if (Math.abs(ny) > 0.5) {
+            const vx = pos.getX(i);
+            const vz = pos.getZ(i);
+            uv.setXY(i, vx * scale + 0.5, vz * scale + 0.5);
+          }
+        }
+        uv.needsUpdate = true;
+      }
+
+      function buildTableAndBoard() {
+        // 1. Massive Carved Aristocratic Table Top with Planar Wood Plank UV Mapping
+        const tableTopGeo = new THREE.CylinderGeometry(6.8, 7.1, 0.45, 96);
+        applyPlanarTableUVs(tableTopGeo, 0.12);
+        const tableTop = new THREE.Mesh(tableTopGeo, tableWoodMat);
+        tableTop.position.y = -0.225;
+        tableTop.receiveShadow = true;
+        worldGroup.add(tableTop);
+
+        // Carved outer lip molding on the table perimeter
+        const tableRimGeo = new THREE.TorusGeometry(6.72, 0.16, 24, 96);
+        const tableRim = new THREE.Mesh(tableRimGeo, frameWoodMat);
+        tableRim.rotation.x = Math.PI / 2;
+        tableRim.position.y = 0.01;
+        tableRim.receiveShadow = true;
+        tableRim.castShadow = true;
+        worldGroup.add(tableRim);
+
+        // Raised 3D Brass Inlay Torus Ring embedded in the wooden table (eliminates flat RingGeometry z-fighting!)
+        const tableBrassInlayGeo = new THREE.TorusGeometry(5.69, 0.028, 16, 96);
+        const tableBrassInlay = new THREE.Mesh(tableBrassInlayGeo, brassMat);
+        tableBrassInlay.rotation.x = Math.PI / 2;
+        tableBrassInlay.position.y = 0.008;
+        tableBrassInlay.receiveShadow = true;
+        worldGroup.add(tableBrassInlay);
+
+        // 2. Main Raised Game Board Frame (Multi-tiered Walnut & Brass)
+        const baseFrameGeo = new THREE.BoxGeometry(5.25, 0.32, 5.25);
+        const baseFrame = new THREE.Mesh(baseFrameGeo, frameWoodMat);
+        baseFrame.position.y = 0.16;
+        baseFrame.castShadow = true;
+        baseFrame.receiveShadow = true;
+        boardGroup.add(baseFrame);
+
+        // Upper beveled board tier
+        const midFrameGeo = new THREE.BoxGeometry(4.85, 0.08, 4.85);
+        const midFrame = new THREE.Mesh(midFrameGeo, frameWoodMat);
+        midFrame.position.y = 0.31;
+        midFrame.castShadow = true;
+        midFrame.receiveShadow = true;
+        boardGroup.add(midFrame);
+
+        // Inlaid Travertine Stone Playing Surface
+        const surfaceGeo = new THREE.BoxGeometry(4.46, 0.04, 4.46);
+        const surfaceMesh = new THREE.Mesh(surfaceGeo, boardTopMat);
+        surfaceMesh.position.y = BOARD_Y - 0.02;
+        surfaceMesh.receiveShadow = true;
+        boardGroup.add(surfaceMesh);
+
+        // 3. Brass Corner Brackets & Decorative Rivets on Board Frame
+        const cornerOffsets = [
+          [-2.5, -2.5], [2.5, -2.5],
+          [-2.5, 2.5], [2.5, 2.5]
+        ];
+        cornerOffsets.forEach(([cx, cz]) => {
+          const bracketGeo = new THREE.BoxGeometry(0.46, 0.34, 0.46);
+          const bracket = new THREE.Mesh(bracketGeo, brassMat);
+          bracket.position.set(cx, 0.165, cz);
+          bracket.castShadow = true;
+          bracket.receiveShadow = true;
+          boardGroup.add(bracket);
+
+          // Decorative brass dome rivet on top of each corner
+          const rivetGeo = new THREE.SphereGeometry(0.085, 16, 12);
+          const rivet = new THREE.Mesh(rivetGeo, brassMat);
+          rivet.scale.y = 0.55;
+          rivet.position.set(cx, 0.34, cz);
+          boardGroup.add(rivet);
+        });
+
+        // 4. Recessed Velvet Trays for Player 1 & Player 2 unplaced pieces
+        [3.35, -3.35].forEach((zPos) => {
+          // Outer wooden tray frame
+          const trayFrameGeo = new THREE.BoxGeometry(3.85, 0.22, 1.05);
+          const trayFrame = new THREE.Mesh(trayFrameGeo, frameWoodMat);
+          trayFrame.position.set(0, 0.11, zPos);
+          trayFrame.castShadow = true;
+          trayFrame.receiveShadow = true;
+          worldGroup.add(trayFrame);
+
+          // Inner velvet bed
+          const velvetGeo = new THREE.BoxGeometry(3.55, 0.04, 0.78);
+          const velvet = new THREE.Mesh(velvetGeo, velvetTrayMat);
+          velvet.position.set(0, 0.21, zPos);
+          velvet.receiveShadow = true;
+          worldGroup.add(velvet);
+
+          // 3 Brass Socket Rings in each tray
+          [-1.35, 0, 1.35].forEach((xSlot) => {
+            const slotRingGeo = new THREE.TorusGeometry(0.38, 0.025, 12, 32);
+            const slotRing = new THREE.Mesh(slotRingGeo, agedBronzeMat);
+            slotRing.rotation.x = Math.PI / 2;
+            slotRing.position.set(xSlot, 0.23, zPos);
+            worldGroup.add(slotRing);
+          });
+        });
+
+        // 5. Carved Grooves & Inlaid Brass Lines on the Board (Trimmed cleanly between socket rims!)
+        const SOCKET_RIM_RADIUS = 0.39;
+        function createGrooveSegment(p1, p2, targetGroup) {
+          const fullDist = p1.distanceTo(p2);
+          // Trim both ends at the socket brass rim so grooves never cut across the inside of the sockets
+          const segDist = Math.max(0.05, fullDist - SOCKET_RIM_RADIUS * 2.0);
+          const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+          const angle = Math.atan2(p2.x - p1.x, p2.z - p1.z);
+
+          // Dark recessed groove channel
+          const channelGeo = new THREE.BoxGeometry(0.086, 0.012, segDist);
+          const channelMesh = new THREE.Mesh(channelGeo, agedBronzeMat);
+          channelMesh.position.set(mid.x, BOARD_Y + 0.002, mid.z);
+          channelMesh.rotation.y = angle;
+          channelMesh.receiveShadow = true;
+          targetGroup.add(channelMesh);
+
+          // Gleaming gold inner wire
+          const wireGeo = new THREE.CylinderGeometry(0.018, 0.018, segDist + 0.02, 16);
+          const wireMesh = new THREE.Mesh(wireGeo, brassMat);
+          wireMesh.position.set(mid.x, BOARD_Y + 0.009, mid.z);
+          wireMesh.rotation.x = Math.PI / 2;
+          wireMesh.rotation.z = -angle;
+          targetGroup.add(wireMesh);
+        }
+
+        // Orthogonal lines split into node-to-node segments [a->b] and [b->c]
+        ORTHOGONAL_LINES.forEach(([a, b, c]) => {
+          createGrooveSegment(nodePositions[a], nodePositions[b], boardGroup);
+          createGrooveSegment(nodePositions[b], nodePositions[c], boardGroup);
+        });
+
+        // Diagonal lines split into node-to-node segments [a->b] and [b->c]
+        DIAGONAL_LINES.forEach(([a, b, c]) => {
+          createGrooveSegment(nodePositions[a], nodePositions[b], diagonalGroovesGroup);
+          createGrooveSegment(nodePositions[b], nodePositions[c], diagonalGroovesGroup);
+        });
+
+        // 6. Detailed Tabletop Props (Candle in Brass Holder & Vintage Pocket Watch)
+        buildCandleProp(new THREE.Vector3(-3.85, 0.0, -3.55));
+        buildPocketWatchProp(new THREE.Vector3(3.85, 0.0, -3.35));
+      }
+
+      function buildCandleProp(pos) {
+        const candleGroup = new THREE.Group();
+        candleGroup.position.copy(pos);
+
+        // Brass saucer base
+        const basePoints = [
+          new THREE.Vector2(0.0, 0.0),
+          new THREE.Vector2(0.68, 0.0),
+          new THREE.Vector2(0.75, 0.08),
+          new THREE.Vector2(0.62, 0.14),
+          new THREE.Vector2(0.24, 0.14),
+          new THREE.Vector2(0.18, 0.45),
+          new THREE.Vector2(0.28, 0.52),
+          new THREE.Vector2(0.25, 0.58),
+          new THREE.Vector2(0.0, 0.58)
+        ];
+        const holderGeo = new THREE.LatheGeometry(basePoints, 40);
+        const holder = new THREE.Mesh(holderGeo, brassMat);
+        holder.castShadow = true;
+        holder.receiveShadow = true;
+        candleGroup.add(holder);
+
+        // Finger ring handle on candlestick
+        const handleGeo = new THREE.TorusGeometry(0.22, 0.035, 14, 28);
+        const handle = new THREE.Mesh(handleGeo, brassMat);
+        handle.position.set(0.68, 0.22, 0);
+        handle.castShadow = true;
+        candleGroup.add(handle);
+
+        // Translucent Paraffin / Beeswax candle with subsurface top glow & bump relief
+        const paraffinPBR = createParaffinWaxPBR(maxAnisotropy);
+        const waxMat = new THREE.MeshStandardMaterial({
+          map: paraffinPBR.map,
+          bumpMap: paraffinPBR.bumpMap,
+          bumpScale: 0.012,
+          roughnessMap: paraffinPBR.bumpMap,
+          roughness: 0.36,
+          metalness: 0.01,
+          emissive: new THREE.Color(0xff9429),
+          emissiveMap: paraffinPBR.emissiveMap,
+          emissiveIntensity: 0.42
+        });
+
+        // Lathed paraffin candle body with a realistic melted concave wax pool at the top rim
+        const waxProfile = [
+          new THREE.Vector2(0.0, 0.56),
+          new THREE.Vector2(0.215, 0.56),
+          new THREE.Vector2(0.212, 0.85),
+          new THREE.Vector2(0.205, 1.25),
+          new THREE.Vector2(0.198, 1.65),
+          new THREE.Vector2(0.204, 1.84),
+          new THREE.Vector2(0.192, 1.90),
+          new THREE.Vector2(0.155, 1.87),
+          new THREE.Vector2(0.08, 1.855),
+          new THREE.Vector2(0.0, 1.85)
+        ];
+        const waxGeo = new THREE.LatheGeometry(waxProfile, 40);
+        const wax = new THREE.Mesh(waxGeo, waxMat);
+        wax.castShadow = true;
+        wax.receiveShadow = true;
+        candleGroup.add(wax);
+
+        // 3 Sculpted 3D melted paraffin wax tear-drips along the side of the candle
+        const dripAngles = [0.4, 2.15, 4.35];
+        const dripLengths = [0.42, 0.62, 0.34];
+        dripAngles.forEach((ang, idx) => {
+          const len = dripLengths[idx];
+          const dripGeo = new THREE.CylinderGeometry(0.014, 0.022, len, 12);
+          const dripMesh = new THREE.Mesh(dripGeo, waxMat);
+          const r = 0.201;
+          dripMesh.position.set(Math.cos(ang) * r, 1.86 - len * 0.5, Math.sin(ang) * r);
+          candleGroup.add(dripMesh);
+
+          const dropBulb = new THREE.Mesh(new THREE.SphereGeometry(0.024, 12, 10), waxMat);
+          dropBulb.scale.y = 1.35;
+          dropBulb.position.set(Math.cos(ang) * r, 1.86 - len, Math.sin(ang) * r);
+          candleGroup.add(dropBulb);
+        });
+
+        // Braided charred cotton wick with glowing ember tip
+        const wickGeo = new THREE.CylinderGeometry(0.012, 0.014, 0.12, 10);
+        const wickMat = new THREE.MeshBasicMaterial({ color: 0x1a110b });
+        const wick = new THREE.Mesh(wickGeo, wickMat);
+        wick.position.y = 1.91;
+        candleGroup.add(wick);
+
+        // Glowing layered teardrop flame (warm golden outer aura + bright white-yellow inner core)
+        candleFlameMesh = new THREE.Group();
+        candleFlameMesh.position.y = 1.96;
+
+        const outerFlameGeo = new THREE.ConeGeometry(0.082, 0.29, 20);
+        outerFlameGeo.translate(0, 0.145, 0);
+        const outerFlameMat = new THREE.MeshBasicMaterial({
+          color: 0xffb838,
+          transparent: true,
+          opacity: 0.92
+        });
+        const outerFlame = new THREE.Mesh(outerFlameGeo, outerFlameMat);
+        candleFlameMesh.add(outerFlame);
+
+        const innerCoreGeo = new THREE.ConeGeometry(0.044, 0.17, 16);
+        innerCoreGeo.translate(0, 0.075, 0);
+        const innerCoreMat = new THREE.MeshBasicMaterial({ color: 0xfffbe6 });
+        const innerCore = new THREE.Mesh(innerCoreGeo, innerCoreMat);
+        candleFlameMesh.add(innerCore);
+
+        candleGroup.add(candleFlameMesh);
+
+        worldGroup.add(candleGroup);
+      }
+
+      function createWatchDialTexture() {
+        const size = 1024;
+        const c = document.createElement('canvas');
+        c.width = size;
+        c.height = size;
+        const ctx = c.getContext('2d');
+        const cx = 512, cy = 512;
+
+        // Warm vintage Grand Feu enamel dial background
+        const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 495);
+        grad.addColorStop(0, '#fffdf7');
+        grad.addColorStop(0.76, '#f6ecd8');
+        grad.addColorStop(1, '#d8c5a3');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+
+        // Central guilloché engine-turned rosette pattern
+        ctx.strokeStyle = 'rgba(168, 128, 64, 0.16)';
+        ctx.lineWidth = 1.5;
+        for (let r = 45; r <= 275; r += 14) {
+          ctx.beginPath();
+          for (let a = 0; a <= 360; a += 2) {
+            const rad = (a * Math.PI) / 180;
+            const wave = r + Math.sin(rad * 24) * 3.5;
+            const px = cx + Math.cos(rad) * wave;
+            const py = cy + Math.sin(rad) * wave;
+            if (a === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        // Outer railroad minute & stopwatch 1/5th-second track rings
+        ctx.strokeStyle = '#1e1610';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 466, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 436, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 60 second/minute ticks & 12 gold-trimmed hour markers
+        for (let i = 0; i < 60; i++) {
+          const angle = (i * Math.PI) / 30 - Math.PI / 2;
+          const isHour = i % 5 === 0;
+          const rOuter = 464;
+          const rInner = isHour ? 412 : 436;
+          ctx.strokeStyle = isHour ? '#17100b' : 'rgba(30, 22, 16, 0.72)';
+          ctx.lineWidth = isHour ? 9 : 3.5;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(angle) * rInner, cy + Math.sin(angle) * rInner);
+          ctx.lineTo(cx + Math.cos(angle) * rOuter, cy + Math.sin(angle) * rOuter);
+          ctx.stroke();
+        }
+
+        // Classical Roman Numerals around dial
+        const romans = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+        ctx.fillStyle = '#1b130d';
+        ctx.font = 'bold 48px Georgia, "Cormorant Garamond", serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let h = 0; h < 12; h++) {
+          const angle = (h * Math.PI) / 6 - Math.PI / 2;
+          const rNum = 352;
+          const nx = cx + Math.cos(angle) * rNum;
+          const ny = cy + Math.sin(angle) * rNum;
+          ctx.save();
+          ctx.translate(nx, ny);
+          ctx.rotate(angle + Math.PI / 2);
+          ctx.fillText(romans[h], 0, 0);
+          ctx.restore();
+        }
+
+        // Inner gold stopwatch ring
+        ctx.strokeStyle = 'rgba(154, 110, 42, 0.58)';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 286, 0, Math.PI * 2);
+        ctx.stroke();
+
+        return configureTexturePBR(new THREE.CanvasTexture(c), maxAnisotropy);
+      }
+
+      function buildPocketWatchProp(pos) {
+        const watchGroup = new THREE.Group();
+        watchGroup.position.copy(pos);
+        watchGroup.rotation.y = -0.45;
+
+        // Gold case
+        const caseGeo = new THREE.CylinderGeometry(0.56, 0.56, 0.14, 36);
+        const watchCase = new THREE.Mesh(caseGeo, brassMat);
+        watchCase.position.y = 0.07;
+        watchCase.castShadow = true;
+        watchCase.receiveShadow = true;
+        watchGroup.add(watchCase);
+
+        // Raised outer brass bezel around the dial
+        const bezelGeo = new THREE.TorusGeometry(0.49, 0.032, 16, 40);
+        const bezel = new THREE.Mesh(bezelGeo, brassMat);
+        bezel.rotation.x = Math.PI / 2;
+        bezel.position.y = 0.145;
+        watchGroup.add(bezel);
+
+        // Enamel dial face with 60 tick marks
+        const dialTex = createWatchDialTexture();
+        const faceGeo = new THREE.CylinderGeometry(0.47, 0.47, 0.02, 36);
+        const faceMat = new THREE.MeshStandardMaterial({
+          map: dialTex,
+          roughness: 0.22,
+          metalness: 0.04
+        });
+        const face = new THREE.Mesh(faceGeo, faceMat);
+        face.position.y = 0.142;
+        watchGroup.add(face);
+
+        // Watch hands properly anchored at center pivot (0, y, 0) so each hand rotates around its base end!
+        const handMat = new THREE.MeshBasicMaterial({ color: 0x18120e });
+
+        // 1. Hour hand pivot group (short spade hand, anchored at center, pointing toward -Z = 12 o'clock)
+        watchHourHand = new THREE.Group();
+        watchHourHand.position.set(0, 0.155, 0);
+        const hourBlade = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.008, 0.23), handMat);
+        // Offset by -0.085 on Z so 0.03 tail is behind center and 0.20 blade points forward from center
+        hourBlade.position.set(0, 0, -0.085);
+        watchHourHand.add(hourBlade);
+        watchHourHand.rotation.y = -0.85;
+        watchGroup.add(watchHourHand);
+
+        // 2. Minute hand pivot group (longer slender hand, anchored at center)
+        watchMinuteHand = new THREE.Group();
+        watchMinuteHand.position.set(0, 0.161, 0);
+        const minuteBlade = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.008, 0.34), handMat);
+        // Offset by -0.135 on Z so 0.035 tail is behind center and 0.305 blade points forward from center
+        minuteBlade.position.set(0, 0, -0.135);
+        watchMinuteHand.add(minuteBlade);
+        watchMinuteHand.rotation.y = 0.45;
+        watchGroup.add(watchMinuteHand);
+
+        // 3. Silent ticking crimson stopwatch second hand pivot group (anchored at center with counterweight tail)
+        watchSecondHand = new THREE.Group();
+        watchSecondHand.position.set(0, 0.167, 0);
+        const secMat = new THREE.MeshBasicMaterial({ color: 0xa82424 });
+        const secondBlade = new THREE.Mesh(new THREE.BoxGeometry(0.013, 0.008, 0.42), secMat);
+        // Offset by -0.14 on Z so 0.07 counterweight is behind center and 0.35 needle points forward to the rim
+        secondBlade.position.set(0, 0, -0.14);
+        watchSecondHand.add(secondBlade);
+        watchGroup.add(watchSecondHand);
+
+        // Central brass cap pin (boss) holding all 3 hands at the center axis
+        const pinGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.022, 20);
+        const pin = new THREE.Mesh(pinGeo, brassMat);
+        pin.position.set(0, 0.168, 0);
+        watchGroup.add(pin);
+
+        // Crown & ring at top of pocket watch (12 o'clock at -Z)
+        const crownStemGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.12, 16);
+        const crownStem = new THREE.Mesh(crownStemGeo, brassMat);
+        crownStem.rotation.x = Math.PI / 2;
+        crownStem.position.set(0, 0.08, -0.59);
+        watchGroup.add(crownStem);
+
+        const bowGeo = new THREE.TorusGeometry(0.14, 0.024, 10, 24);
+        const bow = new THREE.Mesh(bowGeo, brassMat);
+        bow.rotation.x = Math.PI / 2;
+        bow.position.set(0, 0.08, -0.68);
+        watchGroup.add(bow);
+
+        worldGroup.add(watchGroup);
+      }
+
+      // =========================================================================
+      // 6. BOARD SOCKETS (ЛУНКИ), INTERACTION RINGS & 3D LATHED PIECES
+      // =========================================================================
+      const socketMeshes = [];   // Invisible generous hit targets for raycasting
+      const socketRings = [];    // Visual pulsing indicator rings on the 9 nodes
+      const pieces3D = [];       // The 6 detailed 3D piece groups (3 Ivory, 3 Obsidian)
+
+      function buildBoardSockets() {
+        nodePositions.forEach((pos, index) => {
+          // Carved recessed socket rim (Brass bezel + recessed dark dish)
+          const outerRimGeo = new THREE.TorusGeometry(0.39, 0.036, 16, 36);
+          const outerRim = new THREE.Mesh(outerRimGeo, brassMat);
+          outerRim.rotation.x = Math.PI / 2;
+          outerRim.position.set(pos.x, BOARD_Y + 0.012, pos.z);
+          outerRim.castShadow = true;
+          outerRim.receiveShadow = true;
+          boardGroup.add(outerRim);
+
+          // Smooth recessed dark walnut-bronze socket well (positioned cleanly above stone top to prevent z-fighting)
+          const dishGeo = new THREE.CylinderGeometry(0.365, 0.34, 0.012, 48);
+          const dishMat = new THREE.MeshStandardMaterial({
+            map: darkWoodPBR.map,
+            color: 0x4a3320,
+            roughness: 0.42,
+            metalness: 0.18,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1
+          });
+          const dish = new THREE.Mesh(dishGeo, dishMat);
+          dish.position.set(pos.x, BOARD_Y + 0.003, pos.z);
+          dish.receiveShadow = true;
+          boardGroup.add(dish);
+
+          // Subtle inner concentric brass inlay ring inside the socket well
+          const innerInlayGeo = new THREE.RingGeometry(0.28, 0.30, 40);
+          const innerInlay = new THREE.Mesh(innerInlayGeo, agedBronzeMat);
+          innerInlay.rotation.x = -Math.PI / 2;
+          innerInlay.position.set(pos.x, BOARD_Y + 0.010, pos.z);
+          boardGroup.add(innerInlay);
+
+          // Glowing highlight ring for legal moves / hints
+          const glowRingGeo = new THREE.RingGeometry(0.24, 0.34, 32);
+          const glowRingMat = new THREE.MeshBasicMaterial({
+            color: 0xfad66b,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.0
+          });
+          const glowRing = new THREE.Mesh(glowRingGeo, glowRingMat);
+          glowRing.rotation.x = -Math.PI / 2;
+          glowRing.position.set(pos.x, BOARD_Y + 0.022, pos.z);
+          boardGroup.add(glowRing);
+          socketRings.push(glowRing);
+
+          // Invisible touch-friendly hit cylinder for mobile ergonomics
+          const hitGeo = new THREE.CylinderGeometry(0.62, 0.62, 0.55, 16);
+          const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+          const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+          hitMesh.position.set(pos.x, BOARD_Y + 0.22, pos.z);
+          hitMesh.userData = { nodeIndex: index };
+          boardGroup.add(hitMesh);
+          socketMeshes.push(hitMesh);
+        });
+      }
+
+      // Build an intricately lathed royal piece (3D turned silhouette + gold collar + top finial)
+      function createRoyalPieceMesh(player, pieceId) {
+        const group = new THREE.Group();
+        const isWhite = player === 1;
+        const bodyMat = isWhite ? ivoryPieceMat : obsidianPieceMat;
+        const trimMat = isWhite ? brassMat : agedBronzeMat;
+
+        // Turned lathe profile for aristocratic draught/chess-medallion hybrid piece
+        const profile = [
+          new THREE.Vector2(0.0, 0.0),
+          new THREE.Vector2(0.34, 0.0),
+          new THREE.Vector2(0.36, 0.04),
+          new THREE.Vector2(0.33, 0.09),
+          new THREE.Vector2(0.28, 0.13),
+          new THREE.Vector2(0.31, 0.17),
+          new THREE.Vector2(0.24, 0.24),
+          new THREE.Vector2(0.19, 0.35),
+          new THREE.Vector2(0.25, 0.42),
+          new THREE.Vector2(0.22, 0.47),
+          new THREE.Vector2(0.12, 0.51),
+          new THREE.Vector2(0.15, 0.57),
+          new THREE.Vector2(0.08, 0.64),
+          new THREE.Vector2(0.0, 0.66)
+        ];
+
+        const latheGeo = new THREE.LatheGeometry(profile, 40);
+        const bodyMesh = new THREE.Mesh(latheGeo, bodyMat);
+        bodyMesh.castShadow = true;
+        bodyMesh.receiveShadow = true;
+        group.add(bodyMesh);
+
+        // Decorative metallic waist collar ring
+        const collarGeo = new THREE.TorusGeometry(0.255, 0.022, 14, 32);
+        const collar = new THREE.Mesh(collarGeo, trimMat);
+        collar.rotation.x = Math.PI / 2;
+        collar.position.y = 0.165;
+        collar.castShadow = true;
+        group.add(collar);
+
+        // Upper crown ring
+        const crownRingGeo = new THREE.TorusGeometry(0.215, 0.018, 12, 32);
+        const crownRing = new THREE.Mesh(crownRingGeo, trimMat);
+        crownRing.rotation.x = Math.PI / 2;
+        crownRing.position.y = 0.445;
+        crownRing.castShadow = true;
+        group.add(crownRing);
+
+        // Top metallic finial sphere
+        const finialGeo = new THREE.SphereGeometry(0.068, 20, 16);
+        const finial = new THREE.Mesh(finialGeo, trimMat);
+        finial.position.y = 0.66;
+        finial.castShadow = true;
+        group.add(finial);
+
+        // Selection halo ring around piece base
+        const haloGeo = new THREE.TorusGeometry(0.41, 0.026, 12, 32);
+        const haloMat = new THREE.MeshBasicMaterial({
+          color: 0xffe484,
+          transparent: true,
+          opacity: 0.0
+        });
+        const halo = new THREE.Mesh(haloGeo, haloMat);
+        halo.rotation.x = Math.PI / 2;
+        halo.position.y = 0.03;
+        group.add(halo);
+
+        group.userData = {
+          player,
+          pieceId,
+          nodeIndex: null, // null when sitting in tray
+          traySlot: pieceId % 3,
+          haloMat,
+          targetPos: new THREE.Vector3(),
+          animStartPos: new THREE.Vector3(),
+          animProgress: 1.0,
+          hoverOffset: 0.0
+        };
+
+        return group;
+      }
+
+      function initPieces3D() {
+        // Clear any existing
+        pieces3D.forEach(p => worldGroup.remove(p));
+        pieces3D.length = 0;
+
+        // 3 White pieces (0,1,2) and 3 Black pieces (3,4,5)
+        for (let p = 1; p <= 2; p++) {
+          for (let s = 0; s < 3; s++) {
+            const id = (p - 1) * 3 + s;
+            const mesh = createRoyalPieceMesh(p, id);
+            const trayPos = trayPositions[p][s];
+            mesh.position.copy(trayPos);
+            mesh.userData.targetPos.copy(trayPos);
+            mesh.userData.animStartPos.copy(trayPos);
+            worldGroup.add(mesh);
+            pieces3D.push(mesh);
+          }
+        }
+      }
+
+      // Golden Victory Beam connecting the 3 winning pieces
+      let victoryBeamMesh = null;
+      function updateVictoryBeam() {
+        if (victoryBeamMesh) {
+          boardGroup.remove(victoryBeamMesh);
+          victoryBeamMesh.geometry.dispose();
+          victoryBeamMesh = null;
+        }
+        if (!gameState.winningLine) return;
+
+        const [a, , c] = gameState.winningLine;
+        const p1 = nodePositions[a];
+        const p2 = nodePositions[c];
+        const dist = p1.distanceTo(p2) + 0.55;
+        const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+        const angle = Math.atan2(p2.x - p1.x, p2.z - p1.z);
+
+        const beamGeo = new THREE.CylinderGeometry(0.055, 0.055, dist, 20);
+        const beamMat = new THREE.MeshBasicMaterial({
+          color: 0xffe27a,
+          transparent: true,
+          opacity: 0.9
+        });
+        victoryBeamMesh = new THREE.Mesh(beamGeo, beamMat);
+        victoryBeamMesh.position.set(mid.x, BOARD_Y + 0.34, mid.z);
+        victoryBeamMesh.rotation.x = Math.PI / 2;
+        victoryBeamMesh.rotation.z = -angle;
+        boardGroup.add(victoryBeamMesh);
+      }
+
+      buildTableAndBoard();
+      buildBoardSockets();
+      initPieces3D();
+
+      // =========================================================================
+      // 7. CAMERA ORBIT, ZOOM & PRESETS FOR ONE-HAND MOBILE COMFORT
+      // =========================================================================
+      const cameraState = {
+        theta: 0.0,               // Horizontal angle
+        phi: 0.72,                // Vertical polar angle (radians from top)
+        radius: 8.8,              // Distance
+        targetTheta: 0.0,
+        targetPhi: 0.72,
+        targetRadius: 8.8,
+        presetIndex: 0            // 0 = Classic 3D, 1 = Top-Down 90°, 2 = Low Table Angle
+      };
+
+      function adjustCameraForAspect() {
+        const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+        // On narrow portrait phones, pull camera back slightly so the entire board + trays fit with breathing room
+        const baseRadius = aspect < 0.75 ? 10.6 : aspect < 1.0 ? 9.4 : 8.2;
+        if (cameraState.presetIndex === 0) {
+          cameraState.targetRadius = baseRadius;
+        } else if (cameraState.presetIndex === 1) {
+          cameraState.targetRadius = baseRadius * 0.96;
+        } else {
+          cameraState.targetRadius = baseRadius * 0.92;
+        }
+      }
+      adjustCameraForAspect();
+      cameraState.radius = cameraState.targetRadius;
+
+      function cycleCameraPreset() {
+        sound.playSelect();
+        cameraState.presetIndex = (cameraState.presetIndex + 1) % 3;
+        if (cameraState.presetIndex === 0) {
+          cameraState.targetPhi = 0.72;
+          cameraState.targetTheta = (gameState.autoRotateCamera && gameState.turn === 2 && gameState.opponentMode === 'pvp') ? Math.PI : 0;
+        } else if (cameraState.presetIndex === 1) {
+          // Pure Top-Down view
+          cameraState.targetPhi = 0.06;
+          cameraState.targetTheta = 0;
+        } else {
+          // Warm close-up tabletop perspective
+          cameraState.targetPhi = 0.98;
+          cameraState.targetTheta = 0.42;
+        }
+        adjustCameraForAspect();
+      }
+
+      // =========================================================================
+      // 8. MOVE EXECUTION, ANIMATION & UI SYNCHRONIZATION
+      // =========================================================================
+      function animatePieceTo(pieceMesh, destVec) {
+        pieceMesh.userData.animStartPos.copy(pieceMesh.position);
+        pieceMesh.userData.targetPos.copy(destVec);
+        pieceMesh.userData.animProgress = 0.0;
+      }
+
+      function syncPiecesWithState() {
+        // Clear selection halos
+        pieces3D.forEach(p => {
+          const isSelected = (gameState.selectedNode !== null && p.userData.nodeIndex === gameState.selectedNode);
+          p.userData.haloMat.opacity = isSelected ? 0.95 : 0.0;
+          p.userData.hoverOffset = isSelected ? 0.26 : 0.0;
+        });
+
+        // Update socket rings for legal moves or hint
+        const phase = getPhase();
+        socketRings.forEach((ring, idx) => {
+          ring.material.opacity = 0.0;
+          ring.material.color.setHex(0xfad66b);
+
+          if (gameState.winner !== 0) {
+            if (gameState.winningLine && gameState.winningLine.includes(idx)) {
+              ring.material.opacity = 0.9;
+              ring.material.color.setHex(0xffe47a);
+            }
+            return;
+          }
+
+          if (gameState.hintEdge && (gameState.hintEdge.to === idx || gameState.hintEdge.from === idx)) {
+            ring.material.opacity = 0.92;
+            ring.material.color.setHex(0x5eead4);
+            return;
+          }
+
+          if (phase === 'placement' && gameState.board[idx] === 0) {
+            ring.material.opacity = 0.25;
+          } else if (phase === 'movement' && gameState.selectedNode !== null) {
+            const neighbors = getNeighbors(gameState.selectedNode);
+            if (neighbors.includes(idx) && gameState.board[idx] === 0) {
+              ring.material.opacity = 0.82;
+            }
+          }
+        });
+      }
+
+      function updateHUD() {
+        const phase = getPhase();
+        const phaseBadge = document.getElementById('phase-badge');
+        const turnSubtext = document.getElementById('turn-subtext');
+        const statusHint = document.getElementById('status-hint');
+        const statusDot = document.getElementById('status-dot');
+        const p1Card = document.getElementById('p1-card');
+        const p2Card = document.getElementById('p2-card');
+        const p2Name = document.getElementById('p2-name');
+        const modeLabel = document.getElementById('mode-label');
+        const btnUndo = document.getElementById('btn-undo');
+
+        // Names & mode label
+        const p1Name = document.getElementById('p1-name');
+        if (gameState.opponentMode === 'online') {
+          p1Name.textContent = gameState.onlineRole === 1 ? 'Вы (Белые)' : 'Белые (Сеть)';
+          p2Name.textContent = gameState.onlineRole === 2 ? 'Вы (Чёрные)' : 'Чёрные (Сеть)';
+          modeLabel.textContent = gameState.onlineConnected ? 'Онлайн ●' : 'Онлайн';
+        } else if (gameState.opponentMode === 'pvp') {
+          p1Name.textContent = 'Белые';
+          p2Name.textContent = 'Чёрные';
+          modeLabel.textContent = '2 Игрока';
+        } else if (gameState.opponentMode === 'ai_smart') {
+          p1Name.textContent = 'Белые';
+          p2Name.textContent = 'ИИ Мастер';
+          modeLabel.textContent = 'ИИ Мастер';
+        } else {
+          p1Name.textContent = 'Белые';
+          p2Name.textContent = 'ИИ Новичок';
+          modeLabel.textContent = 'ИИ Новичок';
+        }
+
+        // Scores
+        document.getElementById('p1-score').textContent = String(gameState.scores[1]);
+        document.getElementById('p2-score').textContent = String(gameState.scores[2]);
+
+        // Unplaced piece pips
+        const p1Pips = document.querySelectorAll('#p1-pips .piece-pip');
+        const p2Pips = document.querySelectorAll('#p2-pips .piece-pip');
+        p1Pips.forEach((pip, i) => {
+          pip.classList.toggle('placed', i < gameState.placedCount[1]);
+        });
+        p2Pips.forEach((pip, i) => {
+          pip.classList.toggle('placed', i < gameState.placedCount[2]);
+        });
+
+        // Active player card highlight
+        p1Card.classList.toggle('active-turn', gameState.turn === 1 && gameState.winner === 0);
+        p2Card.classList.toggle('active-turn', gameState.turn === 2 && gameState.winner === 0);
+
+        // Phase & Status text
+        if (gameState.winner !== 0) {
+          phaseBadge.textContent = 'Партия завершена';
+          const winName = gameState.winner === 1 ? 'Белых' : (gameState.opponentMode === 'pvp' ? 'Чёрных' : 'ИИ');
+          turnSubtext.textContent = `Победа ${winName}!`;
+          statusHint.textContent = `Три фигуры в ряд! Нажмите «Заново» для следующей партии`;
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0';
+        } else {
+          phaseBadge.textContent = phase === 'placement' ? 'Фаза 1: Расстановка' : 'Фаза 2: Перемещение';
+          const turnName = gameState.opponentMode === 'online'
+            ? (gameState.turn === gameState.onlineRole ? 'Ваш ход' : 'Ход соперника...')
+            : (gameState.turn === 1 ? 'Ход белых' : (gameState.opponentMode === 'pvp' ? 'Ход чёрных' : 'Думает ИИ...'));
+          turnSubtext.textContent = turnName;
+          statusDot.className = gameState.turn === 1
+            ? 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0'
+            : 'w-2 h-2 rounded-full bg-orange-400 flex-shrink-0';
+
+          if (phase === 'placement') {
+            const left = 3 - gameState.placedCount[gameState.turn];
+            statusHint.textContent = `Поставьте фигуру на любую свободную лунку (осталось в лотке: ${left})`;
+          } else {
+            if (gameState.selectedNode === null) {
+              statusHint.textContent = 'Коснитесь своей фигуры на доске для выбора хода';
+            } else {
+              statusHint.textContent = 'Коснитесь подсвеченной соседней лунки вдоль линии';
+            }
+          }
+        }
+
+        btnUndo.disabled = gameState.history.length === 0;
+        syncPiecesWithState();
+      }
+
+      function saveSnapshot() {
+        gameState.history.push({
+          board: gameState.board.slice(),
+          turn: gameState.turn,
+          placedCount: { 1: gameState.placedCount[1], 2: gameState.placedCount[2] },
+          pieceNodes: pieces3D.map(p => p.userData.nodeIndex)
+        });
+      }
+
+      function sendOnlinePacket(payload) {
+        if (onlineConn && onlineConn.open) {
+          try {
+            onlineConn.send(payload);
+          } catch (e) {}
+        }
+      }
+
+      function executePlacement(nodeIdx, fromNetwork = false) {
+        saveSnapshot();
+        const player = gameState.turn;
+        const slotIdx = gameState.placedCount[player];
+        const piece = pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null && p.userData.traySlot === slotIdx)
+                   || pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null);
+
+        gameState.board[nodeIdx] = player;
+        gameState.placedCount[player]++;
+        gameState.selectedNode = null;
+        gameState.hintEdge = null;
+
+        if (piece) {
+          piece.userData.nodeIndex = nodeIdx;
+          animatePieceTo(piece, nodePositions[nodeIdx]);
+        }
+
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          sendOnlinePacket({ type: 'place', nodeIdx });
+        }
+
+        sound.playWoodPlace(true);
+        finalizeTurn();
+      }
+
+      function executeMovement(fromIdx, toIdx, fromNetwork = false) {
+        saveSnapshot();
+        const player = gameState.turn;
+        const piece = pieces3D.find(p => p.userData.nodeIndex === fromIdx);
+
+        gameState.board[fromIdx] = 0;
+        gameState.board[toIdx] = player;
+        gameState.selectedNode = null;
+        gameState.hintEdge = null;
+
+        if (piece) {
+          piece.userData.nodeIndex = toIdx;
+          animatePieceTo(piece, nodePositions[toIdx]);
+        }
+
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          sendOnlinePacket({ type: 'move', fromIdx, toIdx });
+        }
+
+        sound.playWoodPlace(false);
+        finalizeTurn();
+      }
+
+      function finalizeTurn() {
+        const winRes = checkWinnerOnBoard(gameState.board);
+        if (winRes.winner !== 0) {
+          gameState.winner = winRes.winner;
+          gameState.winningLine = winRes.line;
+          gameState.scores[winRes.winner]++;
+          updateVictoryBeam();
+          updateHUD();
+          sound.playWinChord();
+          setTimeout(() => showVictoryModal(winRes.winner), 650);
+          return;
+        }
+
+        // Switch turn
+        gameState.turn = gameState.turn === 1 ? 2 : 1;
+
+        // Check if next player is completely blocked in movement phase
+        const legalNext = getLegalMoves(gameState.board, gameState.placedCount, gameState.turn);
+        if (legalNext.length === 0) {
+          const prevPlayer = gameState.turn === 1 ? 2 : 1;
+          gameState.winner = prevPlayer;
+          gameState.scores[prevPlayer]++;
+          updateHUD();
+          sound.playWinChord();
+          setTimeout(() => showVictoryModal(prevPlayer, true), 550);
+          return;
+        }
+
+        // Optional auto-rotate camera for 2 players on 1 phone
+        if (gameState.autoRotateCamera && gameState.opponentMode === 'pvp' && cameraState.presetIndex === 0) {
+          cameraState.targetTheta = gameState.turn === 1 ? 0 : Math.PI;
+        }
+
+        updateHUD();
+
+        // Trigger AI turn if playing against AI
+        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && gameState.turn === 2 && gameState.winner === 0) {
+          gameState.isAnimating = true;
+          setTimeout(() => {
+            gameState.isAnimating = false;
+            if (gameState.turn !== 2 || gameState.winner !== 0) return;
+            const aiMove = computeBestMove(2, 6);
+            if (!aiMove) return;
+            if (aiMove.type === 'place') {
+              executePlacement(aiMove.to);
+            } else {
+              executeMovement(aiMove.from, aiMove.to);
+            }
+          }, 480);
+        }
+      }
+
+      function handleNodeTap(nodeIdx) {
+        if (gameState.winner !== 0 || gameState.isAnimating) return;
+        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && gameState.turn === 2) return;
+        if (gameState.opponentMode === 'online') {
+          if (!gameState.onlineConnected) {
+            openOnlineModal();
+            return;
+          }
+          if (gameState.turn !== gameState.onlineRole) return;
+        }
+
+        const phase = getPhase();
+
+        if (phase === 'placement') {
+          if (gameState.board[nodeIdx] === 0) {
+            executePlacement(nodeIdx);
+          }
+        } else {
+          // Movement phase
+          const occupant = gameState.board[nodeIdx];
+          if (occupant === gameState.turn) {
+            // Select or toggle own piece
+            if (gameState.selectedNode === nodeIdx) {
+              gameState.selectedNode = null;
+            } else {
+              gameState.selectedNode = nodeIdx;
+              sound.playSelect();
+            }
+            gameState.hintEdge = null;
+            updateHUD();
+          } else if (occupant === 0 && gameState.selectedNode !== null) {
+            const neighbors = getNeighbors(gameState.selectedNode);
+            if (neighbors.includes(nodeIdx)) {
+              executeMovement(gameState.selectedNode, nodeIdx);
+            }
+          }
+        }
+      }
+
+      function undoLastMove(fromNetwork = false) {
+        if (gameState.history.length === 0 || gameState.isAnimating) return;
+        sound.playSelect();
+
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          sendOnlinePacket({ type: 'undo' });
+        }
+
+        // If playing vs AI and it's Player 1's turn, pop twice so we return to Player 1's prior turn
+        let snap = gameState.history.pop();
+        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && snap.turn === 2 && gameState.history.length > 0) {
+          snap = gameState.history.pop();
+        }
+
+        gameState.board = snap.board.slice();
+        gameState.turn = snap.turn;
+        gameState.placedCount = { 1: snap.placedCount[1], 2: snap.placedCount[2] };
+        gameState.selectedNode = null;
+        gameState.winner = 0;
+        gameState.winningLine = null;
+        gameState.hintEdge = null;
+
+        pieces3D.forEach((p, idx) => {
+          const nIdx = snap.pieceNodes[idx];
+          p.userData.nodeIndex = nIdx;
+          const dest = nIdx !== null
+            ? nodePositions[nIdx]
+            : trayPositions[p.userData.player][p.userData.traySlot];
+          animatePieceTo(p, dest);
+        });
+
+        updateVictoryBeam();
+        hideVictoryModal();
+        updateHUD();
+      }
+
+      function restartGame(fromNetwork = false) {
+        sound.playSelect();
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          sendOnlinePacket({ type: 'restart', useDiagonals: gameState.useDiagonals });
+        }
+        gameState.board = Array(9).fill(0);
+        gameState.turn = 1;
+        gameState.placedCount = { 1: 0, 2: 0 };
+        gameState.selectedNode = null;
+        gameState.winner = 0;
+        gameState.winningLine = null;
+        gameState.history = [];
+        gameState.hintEdge = null;
+        gameState.isAnimating = false;
+
+        pieces3D.forEach((p) => {
+          p.userData.nodeIndex = null;
+          const dest = trayPositions[p.userData.player][p.userData.traySlot];
+          animatePieceTo(p, dest);
+        });
+
+        if (cameraState.presetIndex === 0) {
+          cameraState.targetTheta = (gameState.opponentMode === 'online' && gameState.onlineRole === 2) ? Math.PI : 0;
+        }
+
+        updateVictoryBeam();
+        hideVictoryModal();
+        updateHUD();
+      }
+
+      function showHintMove() {
+        if (gameState.winner !== 0 || gameState.isAnimating) return;
+        sound.playSelect();
+        const best = computeBestMove(gameState.turn, 6);
+        if (!best) return;
+        gameState.hintEdge = best;
+        if (best.type === 'move') {
+          gameState.selectedNode = best.from;
+        }
+        updateHUD();
+      }
+
+      // =========================================================================
+      // 9. TOUCH & MOUSE INPUT (TAPS + SMOOTH ORBIT + PINCH ZOOM)
+      // =========================================================================
+      const raycaster = new THREE.Raycaster();
+      const pointerNDC = new THREE.Vector2();
+
+      let isDragging = false;
+      let dragMovedDistance = 0;
+      let startX = 0;
+      let startY = 0;
+      let lastX = 0;
+      let lastY = 0;
+      let pinchStartDist = 0;
+      let pinchStartRadius = 8.8;
+
+      function performRaycastTap(clientX, clientY) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(pointerNDC, camera);
+
+        // First check board sockets
+        const hits = raycaster.intersectObjects(socketMeshes, false);
+        if (hits.length > 0) {
+          const nodeIdx = hits[0].object.userData.nodeIndex;
+          handleNodeTap(nodeIdx);
+          return;
+        }
+
+        // Also allow tapping directly on any placed 3D piece
+        const pieceHits = raycaster.intersectObjects(pieces3D, true);
+        if (pieceHits.length > 0) {
+          let obj = pieceHits[0].object;
+          while (obj && obj.parent && !obj.userData.player) {
+            obj = obj.parent;
+          }
+          if (obj && obj.userData && obj.userData.nodeIndex !== null) {
+            handleNodeTap(obj.userData.nodeIndex);
+          }
+        }
+      }
+
+      const domElem = renderer.domElement;
+
+      domElem.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch' && !e.isPrimary) return;
+        isDragging = true;
+        dragMovedDistance = 0;
+        startX = e.clientX;
+        startY = e.clientY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
+
+      domElem.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        dragMovedDistance += Math.hypot(dx, dy);
+
+        if (dragMovedDistance > 6) {
+          cameraState.targetTheta -= dx * 0.0075;
+          cameraState.targetPhi = Math.max(0.08, Math.min(1.22, cameraState.targetPhi - dy * 0.0065));
+        }
+      });
+
+      domElem.addEventListener('pointerup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+        if (totalDist < 12 && dragMovedDistance < 15) {
+          performRaycastTap(e.clientX, e.clientY);
+        }
+      });
+
+      // Pinch-to-zoom on mobile touchscreens
+      domElem.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          isDragging = false;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          pinchStartDist = Math.hypot(dx, dy);
+          pinchStartRadius = cameraState.targetRadius;
+        }
+      }, { passive: true });
+
+      domElem.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && pinchStartDist > 0) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.hypot(dx, dy);
+          const scale = pinchStartDist / Math.max(20, dist);
+          cameraState.targetRadius = Math.max(5.5, Math.min(13.5, pinchStartRadius * scale));
+        }
+      }, { passive: true });
+
+      // Mouse wheel zoom for desktop preview
+      domElem.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        cameraState.targetRadius = Math.max(5.5, Math.min(13.5, cameraState.targetRadius + e.deltaY * 0.005));
+      }, { passive: false });
+
+      // =========================================================================
+      // 10. UI EVENT LISTENERS & MODALS
+      // =========================================================================
+      function showVictoryModal(winner, byBlockade = false) {
+        const modal = document.getElementById('victory-modal');
+        const title = document.getElementById('victory-title');
+        const desc = document.getElementById('victory-desc');
+
+        if (winner === 1) {
+          title.textContent = 'Победа Белых!';
+        } else {
+          title.textContent = gameState.opponentMode === 'pvp' ? 'Победа Чёрных!' : 'Победа ИИ Мастера!';
+        }
+
+        if (byBlockade) {
+          desc.textContent = 'У соперника не осталось доступных ходов вдоль линий доски.';
+        } else {
+          desc.textContent = 'Три фигуры выстроены в безупречную мельницу на резной доске.';
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      function hideVictoryModal() {
+        const modal = document.getElementById('victory-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+
+      document.getElementById('btn-camera').addEventListener('click', cycleCameraPreset);
+
+      // Fullscreen Toggle Button (Supports standard Fullscreen API + Webkit + graceful fallback)
+      const btnFullscreen = document.getElementById('btn-fullscreen');
+      const iconFsEnter = document.getElementById('icon-fs-enter');
+      const iconFsExit = document.getElementById('icon-fs-exit');
+
+      function updateFullscreenUI() {
+        const isFs = Boolean(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement ||
+          document.body.classList.contains('pseudo-fullscreen')
+        );
+        btnFullscreen.classList.toggle('active-mode', isFs);
+        iconFsEnter.classList.toggle('hidden', isFs);
+        iconFsExit.classList.toggle('hidden', !isFs);
+      }
+
+      btnFullscreen.addEventListener('click', () => {
+        sound.playSelect();
+        const docEl = document.documentElement;
+        const isFs = Boolean(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        );
+
+        if (!isFs) {
+          const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+          if (req) {
+            Promise.resolve(req.call(docEl)).then(updateFullscreenUI).catch(() => {
+              document.body.classList.toggle('pseudo-fullscreen');
+              updateFullscreenUI();
+            });
+          } else {
+            document.body.classList.toggle('pseudo-fullscreen');
+            updateFullscreenUI();
+          }
+        } else {
+          const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+          if (exit) {
+            Promise.resolve(exit.call(document)).then(updateFullscreenUI).catch(() => {});
+          }
+          document.body.classList.remove('pseudo-fullscreen');
+          updateFullscreenUI();
+        }
+      });
+
+      document.addEventListener('fullscreenchange', updateFullscreenUI);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+
+      document.getElementById('btn-sound').addEventListener('click', () => {
+        sound.enabled = !sound.enabled;
+        const btn = document.getElementById('btn-sound');
+        const onIcon = document.getElementById('icon-sound-on');
+        const offIcon = document.getElementById('icon-sound-off');
+        btn.classList.toggle('active-mode', sound.enabled);
+        onIcon.classList.toggle('hidden', !sound.enabled);
+        offIcon.classList.toggle('hidden', sound.enabled);
+        if (sound.enabled) sound.playSelect();
+      });
+
+      const rulesModal = document.getElementById('rules-modal');
+      function openRulesModal() {
+        sound.playSelect();
+        rulesModal.classList.remove('hidden');
+        rulesModal.classList.add('flex');
+      }
+      function closeRulesModal() {
+        sound.playSelect();
+        rulesModal.classList.add('hidden');
+        rulesModal.classList.remove('flex');
+      }
+
+      document.getElementById('btn-rules').addEventListener('click', openRulesModal);
+      document.getElementById('btn-close-rules').addEventListener('click', closeRulesModal);
+      document.getElementById('btn-apply-rules').addEventListener('click', closeRulesModal);
+
+      document.getElementById('btn-undo').addEventListener('click', () => undoLastMove(false));
+      document.getElementById('btn-hint').addEventListener('click', showHintMove);
+      document.getElementById('btn-restart').addEventListener('click', () => restartGame(false));
+
+      // --- Online Multiplayer (PeerJS WebRTC P2P Room Code System) ---
+      let peerInstance = null;
+      let onlineConn = null;
+      const onlineModal = document.getElementById('online-modal');
+      const onlineStatusText = document.getElementById('online-status-text');
+      const onlineModalDot = document.getElementById('online-modal-dot');
+      const onlineTopDot = document.getElementById('online-dot');
+      const btnOnlineTop = document.getElementById('btn-online');
+      const hostCodeBox = document.getElementById('host-code-box');
+      const hostRoomCodeEl = document.getElementById('host-room-code');
+      const btnDisconnectOnline = document.getElementById('btn-disconnect-online');
+
+      function setOnlineStatus(msg, state = 'idle') {
+        onlineStatusText.textContent = msg;
+        if (state === 'connected') {
+          onlineModalDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0';
+          onlineTopDot.classList.remove('hidden');
+          btnOnlineTop.classList.add('active-mode');
+          btnDisconnectOnline.classList.remove('hidden');
+        } else if (state === 'waiting') {
+          onlineModalDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-300 flex-shrink-0';
+          onlineTopDot.classList.add('hidden');
+          btnOnlineTop.classList.add('active-mode');
+          btnDisconnectOnline.classList.remove('hidden');
+        } else {
+          onlineModalDot.className = 'w-2.5 h-2.5 rounded-full bg-orange-400 flex-shrink-0';
+          onlineTopDot.classList.add('hidden');
+          btnOnlineTop.classList.remove('active-mode');
+          btnDisconnectOnline.classList.add('hidden');
+        }
+      }
+
+      function openOnlineModal() {
+        sound.playSelect();
+        onlineModal.classList.remove('hidden');
+        onlineModal.classList.add('flex');
+      }
+
+      function closeOnlineModal() {
+        sound.playSelect();
+        onlineModal.classList.add('hidden');
+        onlineModal.classList.remove('flex');
+      }
+
+      function disconnectOnlineSession() {
+        if (onlineConn) {
+          try { onlineConn.close(); } catch (e) {}
+          onlineConn = null;
+        }
+        if (peerInstance) {
+          try { peerInstance.destroy(); } catch (e) {}
+          peerInstance = null;
+        }
+        gameState.onlineConnected = false;
+        gameState.onlineRole = null;
+        gameState.roomCode = '';
+        hostCodeBox.classList.add('hidden');
+        setOnlineStatus('Отключено. Выберите создание комнаты или вход по коду', 'idle');
+        if (gameState.opponentMode === 'online') {
+          gameState.opponentMode = 'pvp';
+          document.getElementById('select-opponent').value = 'pvp';
+        }
+        updateHUD();
+      }
+
+      function bindDataConnection(conn, role) {
+        onlineConn = conn;
+        gameState.onlineRole = role;
+
+        conn.on('open', () => {
+          gameState.onlineConnected = true;
+          gameState.opponentMode = 'online';
+          document.getElementById('select-opponent').value = 'online';
+          const roleLabel = role === 1 ? 'Белые (Хост)' : 'Чёрные (Гость)';
+          setOnlineStatus(`Подключено! Вы играете за: ${roleLabel}`, 'connected');
+          restartGame(true);
+          if (role === 1) {
+            sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals });
+          }
+          setTimeout(() => {
+            closeOnlineModal();
+          }, 600);
+        });
+
+        conn.on('data', (data) => {
+          if (!data || typeof data !== 'object') return;
+          if (data.type === 'sync_init') {
+            gameState.useDiagonals = Boolean(data.useDiagonals);
+            document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
+            diagonalGroovesGroup.visible = gameState.useDiagonals;
+            restartGame(true);
+          } else if (data.type === 'place') {
+            executePlacement(data.nodeIdx, true);
+          } else if (data.type === 'move') {
+            executeMovement(data.fromIdx, data.toIdx, true);
+          } else if (data.type === 'restart') {
+            if (typeof data.useDiagonals === 'boolean') {
+              gameState.useDiagonals = data.useDiagonals;
+              document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
+              diagonalGroovesGroup.visible = gameState.useDiagonals;
+            }
+            restartGame(true);
+          } else if (data.type === 'undo') {
+            undoLastMove(true);
+          }
+        });
+
+        conn.on('close', () => {
+          gameState.onlineConnected = false;
+          setOnlineStatus('Соперник отключился от комнаты', 'idle');
+          updateHUD();
+        });
+
+        conn.on('error', () => {
+          setOnlineStatus('Ошибка соединения с соперником', 'idle');
+        });
+      }
+
+      function startHostingRoom() {
+        sound.playSelect();
+        if (typeof Peer === 'undefined') {
+          setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
+          return;
+        }
+        disconnectOnlineSession();
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        const peerId = 'tmm3d-royal-' + code;
+        setOnlineStatus('Создание комнаты на сервере сигналинга...', 'waiting');
+
+        peerInstance = new Peer(peerId, { debug: 0 });
+        peerInstance.on('open', () => {
+          gameState.roomCode = code;
+          gameState.onlineRole = 1;
+          gameState.opponentMode = 'online';
+          document.getElementById('select-opponent').value = 'online';
+          hostRoomCodeEl.textContent = code;
+          hostCodeBox.classList.remove('hidden');
+          setOnlineStatus(`Ожидание игрока... Код комнаты: ${code}`, 'waiting');
+          updateHUD();
+        });
+
+        peerInstance.on('connection', (conn) => {
+          bindDataConnection(conn, 1);
+        });
+
+        peerInstance.on('error', (err) => {
+          setOnlineStatus('Не удалось создать комнату (' + (err.type || 'сеть') + '). Попробуйте ещё раз.', 'idle');
+        });
+      }
+
+      function joinExistingRoom() {
+        sound.playSelect();
+        if (typeof Peer === 'undefined') {
+          setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
+          return;
+        }
+        const rawCode = (document.getElementById('input-join-code').value || '').trim().replace(/[^0-9A-Za-z]/g, '');
+        if (rawCode.length < 4) {
+          setOnlineStatus('Пожалуйста, введите 4-значный код комнаты друга', 'idle');
+          return;
+        }
+        disconnectOnlineSession();
+        setOnlineStatus(`Подключение к комнате ${rawCode}...`, 'waiting');
+
+        peerInstance = new Peer({ debug: 0 });
+        peerInstance.on('open', () => {
+          const conn = peerInstance.connect('tmm3d-royal-' + rawCode, { reliable: true });
+          bindDataConnection(conn, 2);
+        });
+
+        peerInstance.on('error', () => {
+          setOnlineStatus('Комната не найдена. Проверьте 4-значный код.', 'idle');
+        });
+      }
+
+      document.getElementById('btn-online').addEventListener('click', openOnlineModal);
+      document.getElementById('btn-close-online').addEventListener('click', closeOnlineModal);
+      document.getElementById('btn-close-online-bottom').addEventListener('click', closeOnlineModal);
+      document.getElementById('btn-host-room').addEventListener('click', startHostingRoom);
+      document.getElementById('btn-join-room').addEventListener('click', joinExistingRoom);
+      document.getElementById('btn-disconnect-online').addEventListener('click', () => {
+        sound.playSelect();
+        disconnectOnlineSession();
+      });
+
+      document.getElementById('btn-copy-code').addEventListener('click', () => {
+        sound.playSelect();
+        const code = hostRoomCodeEl.textContent || '';
+        if (!code || code === '----') return;
+        const btn = document.getElementById('btn-copy-code');
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          btn.textContent = 'Скопировано!';
+          setTimeout(() => { btn.textContent = 'Копировать'; }, 1600);
+        } catch (e) {}
+      });
+
+      document.getElementById('btn-victory-inspect').addEventListener('click', () => {
+        sound.playSelect();
+        hideVictoryModal();
+      });
+      document.getElementById('btn-victory-play').addEventListener('click', () => {
+        restartGame();
+      });
+
+      // Quick Opponent Mode Cycle button on bottom bar
+      const selectOpponent = document.getElementById('select-opponent');
+      document.getElementById('btn-mode').addEventListener('click', () => {
+        sound.playSelect();
+        const modes = ['pvp', 'ai_smart', 'ai_casual', 'online'];
+        const nextIdx = (modes.indexOf(gameState.opponentMode) + 1) % modes.length;
+        gameState.opponentMode = modes[nextIdx];
+        selectOpponent.value = gameState.opponentMode;
+        if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
+          openOnlineModal();
+        }
+        restartGame(false);
+      });
+
+      selectOpponent.addEventListener('change', (e) => {
+        gameState.opponentMode = e.target.value;
+        if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
+          openOnlineModal();
+        }
+        restartGame(false);
+      });
+
+      document.getElementById('select-diagonals').addEventListener('change', (e) => {
+        gameState.useDiagonals = e.target.value === 'with_diag';
+        diagonalGroovesGroup.visible = gameState.useDiagonals;
+        restartGame();
+      });
+
+      document.getElementById('toggle-autorotate').addEventListener('change', (e) => {
+        gameState.autoRotateCamera = e.target.checked;
+      });
+
+      document.getElementById('select-ambiance').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'candle') {
+          scene.background.setHex(0x0d0907);
+          scene.fog.color.setHex(0x0d0907);
+          candleLight.intensity = 1.15;
+          mainSpot.intensity = 1.25;
+          mainSpot.color.setHex(0xfff1d6);
+        } else if (val === 'daylight') {
+          scene.background.setHex(0x1b2024);
+          scene.fog.color.setHex(0x1b2024);
+          candleLight.intensity = 0.45;
+          mainSpot.intensity = 1.65;
+          mainSpot.color.setHex(0xffffff);
+        } else {
+          scene.background.setHex(0x160f07);
+          scene.fog.color.setHex(0x160f07);
+          candleLight.intensity = 1.45;
+          mainSpot.intensity = 1.4;
+          mainSpot.color.setHex(0xffdf9e);
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / Math.max(1, window.innerHeight);
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        adjustCameraForAspect();
+      });
+
+      // =========================================================================
+      // 11. RENDER LOOP (SMOOTH PARABOLIC PIECE ARCS, CANDLE FLICKER & CAMERA)
+      // =========================================================================
+      const clock = new THREE.Clock();
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.1);
+        const elapsed = clock.getElapsedTime();
+
+        // Smoothly damp camera spherical coordinates
+        cameraState.theta += (cameraState.targetTheta - cameraState.theta) * Math.min(1, dt * 7.5);
+        cameraState.phi += (cameraState.targetPhi - cameraState.phi) * Math.min(1, dt * 7.5);
+        cameraState.radius += (cameraState.targetRadius - cameraState.radius) * Math.min(1, dt * 7.5);
+
+        camera.position.x = cameraState.radius * Math.sin(cameraState.phi) * Math.sin(cameraState.theta);
+        camera.position.y = cameraState.radius * Math.cos(cameraState.phi);
+        camera.position.z = cameraState.radius * Math.sin(cameraState.phi) * Math.cos(cameraState.theta);
+        camera.lookAt(0, 0.22, 0);
+
+        // Animate pieces along smooth parabolic arc
+        pieces3D.forEach((piece) => {
+          const ud = piece.userData;
+          if (ud.animProgress < 1.0) {
+            ud.animProgress = Math.min(1.0, ud.animProgress + dt * 3.1);
+            // Smoothstep easing
+            const t = ud.animProgress * ud.animProgress * (3 - 2 * ud.animProgress);
+            piece.position.lerpVectors(ud.animStartPos, ud.targetPos, t);
+            // Parabolic lift arc
+            const arcLift = Math.sin(t * Math.PI) * 1.15;
+            piece.position.y += arcLift;
+          } else {
+            // Subtle hover float when selected
+            const targetY = ud.targetPos.y + ud.hoverOffset + (ud.hoverOffset > 0 ? Math.sin(elapsed * 5.0) * 0.04 : 0);
+            piece.position.y += (targetY - piece.position.y) * Math.min(1, dt * 12);
+          }
+        });
+
+        // Subtle pulse on socket highlight rings
+        const ringPulse = 0.86 + Math.sin(elapsed * 4.2) * 0.14;
+        socketRings.forEach((ring) => {
+          ring.scale.setScalar(ringPulse);
+        });
+
+        // Natural candle flame flicker & pocket watch second hand
+        if (candleFlameMesh) {
+          const flicker = 0.92 + Math.sin(elapsed * 17.0) * 0.06 + Math.cos(elapsed * 29.0) * 0.04;
+          candleFlameMesh.scale.set(1.0, flicker, 1.0);
+          candleLight.intensity = 1.08 + Math.sin(elapsed * 13.0) * 0.09;
+        }
+        if (watchSecondHand) {
+          // Crisp silent mechanical stopwatch ticking (5 sub-steps per second with smooth damping)
+          const totalTicks = elapsed * 5.0;
+          const wholeTick = Math.floor(totalTicks);
+          const frac = totalTicks - wholeTick;
+          const steppedTick = wholeTick + Math.pow(frac, 0.35);
+          const secAngle = -(steppedTick / 5.0) * (Math.PI / 30);
+          watchSecondHand.rotation.y = secAngle;
+          if (watchMinuteHand) {
+            watchMinuteHand.rotation.y = 0.52 + secAngle / 60.0;
+          }
+          if (watchHourHand) {
+            watchHourHand.rotation.y = -0.82 + secAngle / 720.0;
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      
+      // --- Service Worker Registration & iOS Standalone PWA Helper ---
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+
+      // Unlock WebAudio on first iOS touch anywhere
+      const unlockAudioIOS = () => {
+        sound.init();
+        window.removeEventListener('touchstart', unlockAudioIOS, true);
+        window.removeEventListener('touchend', unlockAudioIOS, true);
+        window.removeEventListener('click', unlockAudioIOS, true);
+      };
+      window.addEventListener('touchstart', unlockAudioIOS, true);
+      window.addEventListener('touchend', unlockAudioIOS, true);
+      window.addEventListener('click', unlockAudioIOS, true);
+
+      window.onload = () => {
+        updateHUD();
+        animate();
+      };
+    })();
+  </script>
+</body>
+</html>

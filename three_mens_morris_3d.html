@@ -8,6 +8,12 @@
   <meta name="apple-mobile-web-app-title" content="Три Мельницы 3D" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0907" />
+  <meta name="description" content="Настольная 3D-игра Три Мельницы (Three Men's Morris) с ИИ и онлайн-мультиплеером между iPhone и Android." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Три Мельницы 3D — Three Men's Morris" />
+  <meta property="og:description" content="Настольная 3D-игра с ИИ и онлайн-игрой по коду комнаты между iPhone и Android." />
+  <meta property="og:image" content="./icon-512.png" />
+  <meta name="twitter:card" content="summary" />
   <title>Three Men's Morris 3D — Три Мельницы</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
@@ -92,22 +98,94 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 248, 231, 0.06);
-      border: 1px solid rgba(212, 168, 79, 0.24);
+      background: rgba(20, 15, 12, 0.80);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 168, 79, 0.34);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 244, 214, 0.14);
       color: #f3e5c8;
-      transition: transform 0.16s ease, background 0.2s ease, border-color 0.2s ease;
+      transition: transform 0.16s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
     }
 
     .icon-btn:active {
       transform: scale(0.92);
-      background: rgba(212, 168, 79, 0.24);
+      background: rgba(38, 28, 18, 0.90);
     }
 
     .icon-btn.active-mode {
-      background: rgba(212, 168, 79, 0.25);
-      border-color: rgba(246, 216, 140, 0.7);
+      background: linear-gradient(135deg, rgba(58, 42, 18, 0.90) 0%, rgba(28, 20, 12, 0.92) 100%);
+      border-color: rgba(246, 216, 140, 0.82);
       color: #ffe39e;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 12px rgba(212, 168, 79, 0.28), inset 0 1px 0 rgba(255, 238, 190, 0.24);
+    }
+
+    .volume-pill {
+      height: 40px;
+      padding: 0 11px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(20, 15, 12, 0.80);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 168, 79, 0.34);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 244, 214, 0.14);
+    }
+
+    input[type="range"].gold-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 68px;
+      height: 5px;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #e5be67 0%, #f7df9c var(--val, 65%), rgba(255, 248, 231, 0.16) var(--val, 65%), rgba(255, 248, 231, 0.16) 100%);
+      border: 1px solid rgba(212, 168, 79, 0.28);
+      cursor: pointer;
+      outline: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    input[type="range"].gold-slider::-webkit-slider-runnable-track {
+      height: 5px;
+      border-radius: 9999px;
+      background: transparent;
+    }
+
+    input[type="range"].gold-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fffdf5 0%, #e8c36b 60%, #b5832c 100%);
+      border: 1.5px solid #fff8dc;
+      box-shadow: 0 0 8px rgba(229, 190, 103, 0.75), 0 2px 5px rgba(0, 0, 0, 0.65);
+      margin-top: -5.5px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="range"].gold-slider:active::-webkit-slider-thumb {
+      transform: scale(1.18);
+      box-shadow: 0 0 12px rgba(247, 223, 156, 0.95), 0 2px 6px rgba(0, 0, 0, 0.7);
+    }
+
+    input[type="range"].gold-slider::-moz-range-track {
+      height: 5px;
+      border-radius: 9999px;
+      background: transparent;
+    }
+
+    input[type="range"].gold-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fffdf5 0%, #e8c36b 60%, #b5832c 100%);
+      border: 1.5px solid #fff8dc;
+      box-shadow: 0 0 8px rgba(229, 190, 103, 0.75), 0 2px 5px rgba(0, 0, 0, 0.65);
+      cursor: pointer;
     }
 
     .action-btn {
@@ -144,8 +222,16 @@
         flex-shrink: 0;
       }
       .icon-btn {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
+      }
+      .volume-pill {
+        height: 34px;
+        padding: 0 8px;
+        gap: 5px;
+      }
+      input[type="range"].gold-slider {
+        width: 48px;
       }
     }
 
@@ -159,6 +245,17 @@
       .action-btn svg {
         width: 13px;
         height: 13px;
+      }
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+      }
+      .volume-pill {
+        height: 32px;
+        padding: 0 7px;
+      }
+      input[type="range"].gold-slider {
+        width: 42px;
       }
     }
 
@@ -439,6 +536,7 @@
   .space-y-3\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.875rem; }
   .w-2\.5 { width: 0.625rem; }
   .h-2\.5 { height: 0.625rem; }
+  .w-28 { width: 7rem; }
   .max-h-\[88dvh\] { max-height: 88dvh; }
   .bg-black\/75 { background-color: rgba(0, 0, 0, 0.75); }
   .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1); }
@@ -463,7 +561,7 @@
   <div class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between px-3 safe-top safe-bottom">
 
     <!-- TOP HUD: Players, Phase & Quick Icons -->
-    <header class="w-full max-w-lg mx-auto flex flex-col gap-2 pointer-events-auto">
+    <header class="w-full max-w-lg mx-auto flex flex-col gap-1.5 pointer-events-auto">
       <div class="glass-pill rounded-2xl p-2 flex items-center justify-between gap-1.5">
 
         <!-- Player 1 (Light / Ivory) -->
@@ -473,37 +571,46 @@
             <span id="p1-score" class="text-xs font-bold text-stone-900">0</span>
           </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between gap-1">
-              <span id="p1-name" class="text-xs font-semibold tracking-wide text-amber-100 truncate">Белые</span>
+            <div class="flex items-center min-w-0">
+              <span id="p1-name" class="text-xs font-semibold tracking-wide text-amber-100 whitespace-nowrap">Белые</span>
             </div>
-            <div id="p1-pips" class="flex items-center gap-1 mt-1" title="Фигуры в руке">
-              <span class="piece-pip ivory"></span>
-              <span class="piece-pip ivory"></span>
-              <span class="piece-pip ivory"></span>
+            <div class="flex items-center gap-1.5 mt-1">
+              <div id="p1-pips" class="flex items-center gap-1" title="Фигуры в руке">
+                <span class="piece-pip ivory"></span>
+                <span class="piece-pip ivory"></span>
+                <span class="piece-pip ivory"></span>
+              </div>
+              <span id="p1-role-badge" class="text-[8px] uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/35 font-semibold flex-shrink-0 leading-tight">Вы</span>
             </div>
           </div>
         </div>
 
         <!-- Center Phase & Mode Indicator -->
-        <div class="flex flex-col items-center justify-center px-2 text-center flex-shrink-0">
+        <div class="flex flex-col items-center justify-center px-1.5 text-center flex-shrink-0">
           <span id="phase-badge" class="text-[10px] uppercase tracking-widest font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30">
             Расстановка
           </span>
           <span id="turn-subtext" class="text-[11px] text-stone-300 mt-0.5 font-medium">
             Ход белых
           </span>
+          <span id="hud-timer-readout" class="text-[10px] font-mono tracking-wider text-amber-300/85 mt-0.5" title="Каминные часы с маятником: время партии · Секундомер: время хода">
+            🕰 00:00 · ⏱ 00:00
+          </span>
         </div>
 
         <!-- Player 2 (Dark / Obsidian) -->
         <div id="p2-card" class="player-card flex items-center gap-2 px-2.5 py-1.5 rounded-xl flex-1 min-w-0 justify-end text-right">
           <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-end gap-1">
-              <span id="p2-name" class="text-xs font-semibold tracking-wide text-stone-200 truncate">Чёрные</span>
+            <div class="flex items-center justify-end min-w-0">
+              <span id="p2-name" class="text-xs font-semibold tracking-wide text-stone-200 whitespace-nowrap">Чёрные</span>
             </div>
-            <div id="p2-pips" class="flex items-center justify-end gap-1 mt-1" title="Фигуры в руке">
-              <span class="piece-pip obsidian"></span>
-              <span class="piece-pip obsidian"></span>
-              <span class="piece-pip obsidian"></span>
+            <div class="flex items-center justify-end gap-1.5 mt-1">
+              <span id="p2-role-badge" class="text-[8px] uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/35 font-semibold flex-shrink-0 leading-tight">ИИ</span>
+              <div id="p2-pips" class="flex items-center justify-end gap-1" title="Фигуры в руке">
+                <span class="piece-pip obsidian"></span>
+                <span class="piece-pip obsidian"></span>
+                <span class="piece-pip obsidian"></span>
+              </div>
             </div>
           </div>
           <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center shadow-inner"
@@ -514,16 +621,16 @@
 
       </div>
 
-      <!-- Contextual Micro-Banner + Utility Buttons -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="glass-pill rounded-full px-3.5 py-1.5 flex items-center gap-2 flex-1 min-w-0">
+      <!-- Full-width readable Status Hint Banner + Utility Controls Row -->
+      <div class="flex flex-col gap-1.5">
+        <div class="glass-pill rounded-full px-3.5 py-1.5 flex items-center justify-center gap-2 w-full min-w-0">
           <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-300 flex-shrink-0"></span>
-          <p id="status-hint" class="text-xs text-amber-100/90 truncate hint-pulse">
-            Коснитесь свободной лунки, чтобы поставить фигуру
+          <p id="status-hint" class="text-xs text-amber-100/95 truncate hint-pulse text-center">
+            Перетащите или коснитесь свободной лунки, чтобы поставить фигуру
           </p>
         </div>
 
-        <div class="flex items-center gap-1 flex-shrink-0">
+        <div class="flex items-center justify-end gap-1.5 flex-shrink-0">
           <button id="btn-online" type="button" class="icon-btn glass-pill relative" title="Играть онлайн и на iPhone" aria-label="Играть онлайн и на iPhone">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -535,6 +642,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
           </button>
+          <button id="btn-music" type="button" class="icon-btn glass-pill active-mode" title="Фоновая музыка («Yoru no Himawari»)" aria-label="Фоновая музыка">
+            <svg id="icon-music-on" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <svg id="icon-music-off" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM3 3l18 18" />
+            </svg>
+          </button>
           <button id="btn-sound" type="button" class="icon-btn glass-pill active-mode" title="Звуковые эффекты" aria-label="Звуковые эффекты">
             <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -543,6 +658,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
             </svg>
           </button>
+          <div class="volume-pill" title="Громкость музыки и звуков">
+            <input id="hud-volume-slider" type="range" min="0" max="100" value="65" style="--val: 65%" aria-label="Громкость музыки и звуков"
+                   class="gold-slider" />
+            <span id="hud-volume-label" class="text-[10px] font-semibold text-amber-200 select-none">65%</span>
+          </div>
           <button id="btn-fullscreen" type="button" class="icon-btn glass-pill" title="На весь экран" aria-label="На весь экран">
             <svg id="icon-fs-enter" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
@@ -609,7 +729,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
         </svg>
       </div>
-      <p class="text-xs uppercase tracking-widest text-amber-300/80 font-semibold">Мельница собрана</p>
+      <p id="victory-subtitle" class="text-xs uppercase tracking-widest text-amber-300/80 font-semibold">Мельница собрана</p>
       <h2 id="victory-title" class="font-serif-title text-3xl font-bold text-amber-100 mt-1">Победа Белых!</h2>
       <p id="victory-desc" class="text-xs text-stone-300 mt-2 leading-relaxed">
         Три фигуры выстроены в единую линию на резной доске.
@@ -620,6 +740,56 @@
         </button>
         <button id="btn-victory-play" type="button" class="action-btn action-btn-gold flex-1 py-2.5">
           Новая партия
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3-FOLD REPETITION MUTUAL DRAW OFFER MODAL -->
+  <div id="draw-modal" class="fixed inset-0 z-20 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+    <div class="glass-modal rounded-3xl p-6 w-full max-w-sm text-center border border-amber-400/40 transform transition-all">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center bg-amber-500/20 border border-amber-300/50 shadow-lg">
+        <svg class="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+      </div>
+      <p class="text-[11px] uppercase tracking-widest text-amber-300/90 font-semibold">3-кратное повторение позиции</p>
+      <h2 class="font-serif-title text-2xl font-bold text-amber-100 mt-1">Согласны на ничью?</h2>
+      <p id="draw-modal-desc" class="text-xs text-stone-300 mt-2 leading-relaxed">
+        Позиция на доске повторилась 3 раза. Для объявления боевой ничьей требуется согласие обоих игроков.
+      </p>
+
+      <div class="flex items-center justify-between gap-2 mt-4 p-2.5 rounded-2xl bg-white/5 border border-amber-500/20 text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="piece-pip ivory"></span>
+          <span id="draw-status-p1" class="text-stone-300 font-medium">Белые: ожидание</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="piece-pip obsidian"></span>
+          <span id="draw-status-p2" class="text-stone-300 font-medium">Чёрные: ожидание</span>
+        </div>
+      </div>
+
+      <!-- Buttons for Local 2-Player mode (both players confirm on screen) -->
+      <div id="draw-pvp-actions" class="flex items-center gap-2 mt-4">
+        <button id="btn-draw-agree-p1" type="button" class="action-btn flex-1 py-2.5">
+          Белые: За ничью
+        </button>
+        <button id="btn-draw-agree-p2" type="button" class="action-btn flex-1 py-2.5">
+          Чёрные: За ничью
+        </button>
+      </div>
+
+      <!-- Button for Online / AI mode (single local player confirms) -->
+      <div id="draw-single-actions" class="hidden items-center gap-2 mt-4">
+        <button id="btn-draw-agree-single" type="button" class="action-btn action-btn-gold flex-1 py-2.5">
+          Согласиться на ничью
+        </button>
+      </div>
+
+      <div class="flex items-center mt-2.5">
+        <button id="btn-draw-decline" type="button" class="action-btn w-full py-2">
+          Продолжить партию
         </button>
       </div>
     </div>
@@ -656,6 +826,15 @@
           </div>
 
           <div class="flex items-center justify-between gap-2">
+            <span>Ваша сторона (против ИИ):</span>
+            <select id="select-ai-side" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
+              <option value="white">Белые (первый ход)</option>
+              <option value="black">Чёрные (второй ход)</option>
+              <option value="alternate">По очереди</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
             <span>Линии доски:</span>
             <select id="select-diagonals" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
               <option value="with_diag">Классика (с диагоналями — 8 линий)</option>
@@ -669,12 +848,30 @@
           </div>
 
           <div class="flex items-center justify-between gap-2">
-            <span>Освещение стола:</span>
+            <span>Небо и атмосфера:</span>
             <select id="select-ambiance" class="bg-stone-900/90 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-100 focus:outline-none">
+              <option value="sky_day">Лазурное небо и облака (Aozora)</option>
+              <option value="sky_sunset">Золотой закат в облаках</option>
+              <option value="sky_night">Ночные облака и звёзды</option>
               <option value="candle">Вечерняя свеча и камин</option>
               <option value="daylight">Дневной кабинет</option>
               <option value="royal">Золотой зал</option>
             </select>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <span>Громкость музыки («Yoru no Himawari»):</span>
+            <div class="flex items-center gap-2">
+              <input id="slider-music-vol" type="range" min="0" max="100" value="65" style="width: 96px; --val: 65%" class="gold-slider" />
+              <span id="music-vol-label" class="text-[11px] text-amber-200 font-semibold w-8 text-right">65%</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/10">
+            <span>Счёт партий:</span>
+            <button id="btn-reset-score" type="button" class="px-2.5 py-1 rounded-xl bg-white/10 border border-amber-400/30 text-[11px] text-amber-200">
+              Сбросить счёт
+            </button>
           </div>
         </div>
 
@@ -765,9 +962,14 @@
               <span class="text-[10px] uppercase tracking-wider text-stone-400 block">Код вашей комнаты:</span>
               <span id="host-room-code" class="text-xl font-bold tracking-widest text-amber-200">----</span>
             </div>
-            <button id="btn-copy-code" type="button" class="action-btn px-3">
-              Копировать
-            </button>
+            <div class="flex items-center gap-1.5">
+              <button id="btn-copy-code" type="button" class="action-btn px-2.5">
+                Копировать
+              </button>
+              <button id="btn-share-code" type="button" class="action-btn action-btn-gold px-2.5" title="Поделиться прямой ссылкой на комнату">
+                Ссылка
+              </button>
+            </div>
           </div>
         </div>
 
@@ -788,7 +990,7 @@
           <p class="font-semibold text-amber-200">📱 Как установить на iPhone и играть с вашим телефоном:</p>
           <p class="text-stone-300 text-[11px]">
             • <strong>На вашем Samsung S26 Ultra:</strong> игра работает как нативное приложение <strong>APK</strong> (или в браузере).<br/>
-            • <strong>На iPhone (iOS):</strong> файлы <code>.apk</code> предназначены только для Android, но этот проект включает веб-приложение <strong>PWA для iOS</strong>! Откройте файл <code>three_mens_morris_3d.html</code> или онлайн-ссылку из Colab в <strong>Safari на iPhone</strong> → нажмите <strong>«Поделиться»</strong> → <strong>«На экран „Домой“»</strong>. Иконка появится на рабочем столе iPhone и запустится на весь экран 1-в-1 без рамок браузера.<br/>
+            • <strong>На iPhone (iOS):</strong> файлы <code>.apk</code> предназначены только для Android, но этот проект включает веб-приложение <strong>PWA для iOS</strong>! Откройте сайт <code>vicrom1509.github.io/three-mens-morris-3d</code> в <strong>Safari на iPhone</strong> → нажмите <strong>«Поделиться»</strong> → <strong>«На экран „Домой“»</strong>. Иконка появится на рабочем столе iPhone и запустится на весь экран 1-в-1 без рамок браузера.<br/>
             • <strong>Игра по сети:</strong> оба игрока открывают это окно (кнопка глобуса сверху), один создаёт 4-значный код, второй вводит его — ходы синхронизируются в реальном времени!
           </p>
         </div>
@@ -807,12 +1009,135 @@
       'use strict';
 
       // =========================================================================
-      // 1. SYNTHESIZED SOUND ENGINE (Web Audio API - Realistic Wood, Brass & Chime)
+      // 1. SYNTHESIZED SOUND & CONCERT MUSIC ENGINE ("Yoru no Himawari" + Wood SFX)
       // =========================================================================
+      const YORU_NO_HIMAWARI_SCORE = [
+        // --- ТАКТ 1: Em9 (Ми-минор нонаккорд) ---
+        { beat: 0.0,  notes: [40], vel: 0.62, sustain: 1.25 },
+        { beat: 0.06, notes: [67, 79], vel: 0.80, sustain: 1.15 },
+        { beat: 1.0,  notes: [47], vel: 0.36, sustain: 1.0 },
+        { beat: 2.0,  notes: [52], vel: 0.34, sustain: 1.0 },
+        { beat: 2.5,  notes: [59], vel: 0.24, sustain: 0.9 },
+        { beat: 3.0,  notes: [55], vel: 0.28, sustain: 1.0 },
+        { beat: 3.08, notes: [66, 78], vel: 0.72, sustain: 1.1 },
+        { beat: 4.0,  notes: [64, 76], vel: 0.64, sustain: 1.1 },
+        { beat: 5.0,  notes: [59], vel: 0.25, sustain: 0.95 },
+        { beat: 5.5,  notes: [62], vel: 0.22, sustain: 0.85 },
+
+        // --- ТАКТ 2: Cmaj9 (До-мажор нонаккорд) ---
+        { beat: 6.0,  notes: [36], vel: 0.62, sustain: 1.25 },
+        { beat: 6.06, notes: [71, 83], vel: 0.84, sustain: 1.2 },
+        { beat: 7.0,  notes: [43], vel: 0.36, sustain: 1.0 },
+        { beat: 8.0,  notes: [48], vel: 0.32, sustain: 1.0 },
+        { beat: 8.5,  notes: [55], vel: 0.24, sustain: 0.9 },
+        { beat: 9.0,  notes: [52], vel: 0.28, sustain: 1.0 },
+        { beat: 9.08, notes: [69, 81], vel: 0.74, sustain: 1.1 },
+        { beat: 10.0, notes: [67, 79], vel: 0.62, sustain: 1.1 },
+        { beat: 11.0, notes: [64], vel: 0.26, sustain: 0.95 },
+
+        // --- ТАКТ 3: Dadd9 (Ре-мажор с ноной) ---
+        { beat: 12.0, notes: [38], vel: 0.62, sustain: 1.25 },
+        { beat: 12.06, notes: [69, 81], vel: 0.82, sustain: 1.2 },
+        { beat: 13.0, notes: [45], vel: 0.36, sustain: 1.0 },
+        { beat: 14.0, notes: [50], vel: 0.32, sustain: 1.0 },
+        { beat: 14.5, notes: [57], vel: 0.24, sustain: 0.9 },
+        { beat: 15.0, notes: [54], vel: 0.28, sustain: 1.0 },
+        { beat: 15.08, notes: [67, 79], vel: 0.72, sustain: 1.1 },
+        { beat: 16.0, notes: [66, 78], vel: 0.64, sustain: 1.1 },
+        { beat: 17.0, notes: [62], vel: 0.25, sustain: 0.95 },
+
+        // --- ТАКТ 4: B7sus4 -> B7 (Разрешение) ---
+        { beat: 18.0, notes: [35], vel: 0.60, sustain: 1.25 },
+        { beat: 18.06, notes: [64, 79], vel: 0.74, sustain: 1.1 },
+        { beat: 19.0, notes: [42], vel: 0.36, sustain: 1.0 },
+        { beat: 20.0, notes: [47], vel: 0.32, sustain: 1.0 },
+        { beat: 21.0, notes: [51], vel: 0.28, sustain: 1.0 },
+        { beat: 21.08, notes: [66, 78], vel: 0.66, sustain: 1.1 },
+        { beat: 22.0, notes: [63, 75], vel: 0.62, sustain: 1.1 },
+        { beat: 23.0, notes: [59, 71], vel: 0.54, sustain: 1.15 },
+
+        // --- ТАКТ 5: Em9 (Вариация — развитие мелодии) ---
+        { beat: 24.0, notes: [40], vel: 0.64, sustain: 1.25 },
+        { beat: 24.06, notes: [71, 83], vel: 0.84, sustain: 1.2 },
+        { beat: 25.0, notes: [47], vel: 0.36, sustain: 1.0 },
+        { beat: 26.0, notes: [52, 64], vel: 0.34, sustain: 1.0 },
+        { beat: 27.0, notes: [55], vel: 0.28, sustain: 1.0 },
+        { beat: 27.08, notes: [74, 86], vel: 0.78, sustain: 1.15 },
+        { beat: 28.0, notes: [71, 83], vel: 0.68, sustain: 1.1 },
+        { beat: 29.0, notes: [67, 79], vel: 0.52, sustain: 1.0 },
+
+        // --- ТАКТ 6: Cmaj9 -> D/C ---
+        { beat: 30.0, notes: [36], vel: 0.64, sustain: 1.25 },
+        { beat: 30.06, notes: [76, 88], vel: 0.86, sustain: 1.2 },
+        { beat: 31.0, notes: [43], vel: 0.36, sustain: 1.0 },
+        { beat: 32.0, notes: [48, 60], vel: 0.34, sustain: 1.0 },
+        { beat: 33.0, notes: [52], vel: 0.30, sustain: 1.0 },
+        { beat: 33.08, notes: [74, 86], vel: 0.76, sustain: 1.1 },
+        { beat: 34.0, notes: [71, 83], vel: 0.66, sustain: 1.1 },
+        { beat: 35.0, notes: [67, 79], vel: 0.48, sustain: 1.0 },
+
+        // --- ТАКТ 7: Dadd9 -> Bm7 ---
+        { beat: 36.0, notes: [38], vel: 0.62, sustain: 1.25 },
+        { beat: 36.06, notes: [69, 81], vel: 0.82, sustain: 1.2 },
+        { beat: 37.0, notes: [45], vel: 0.36, sustain: 1.0 },
+        { beat: 38.0, notes: [50, 62], vel: 0.34, sustain: 1.0 },
+        { beat: 39.0, notes: [35, 54], vel: 0.42, sustain: 1.1 },
+        { beat: 39.08, notes: [71, 83], vel: 0.74, sustain: 1.1 },
+        { beat: 40.0, notes: [69, 81], vel: 0.64, sustain: 1.1 },
+        { beat: 41.0, notes: [66, 78], vel: 0.52, sustain: 1.0 },
+
+        // --- ТАКТ 8: Am9 -> B7(b9) (Нежное затихание перед новым циклом) ---
+        { beat: 42.0, notes: [33], vel: 0.58, sustain: 1.2 },
+        { beat: 42.06, notes: [67, 79], vel: 0.74, sustain: 1.15 },
+        { beat: 43.0, notes: [40, 52], vel: 0.34, sustain: 1.0 },
+        { beat: 44.0, notes: [66, 78], vel: 0.64, sustain: 1.05 },
+        { beat: 45.0, notes: [35, 47], vel: 0.56, sustain: 1.25 },
+        { beat: 45.08, notes: [63, 75], vel: 0.68, sustain: 1.15 },
+        { beat: 46.0, notes: [64, 76], vel: 0.58, sustain: 1.1 },
+        { beat: 47.0, notes: [59, 71], vel: 0.50, sustain: 1.3 }
+      ];
+
+      const CELESTA_SHIMMER_OVERLAY = [
+        { beat: 0.10,  notes: [91], vel: 0.28 },
+        { beat: 6.10,  notes: [95], vel: 0.30 },
+        { beat: 12.10, notes: [93], vel: 0.28 },
+        { beat: 16.02, notes: [90], vel: 0.24 },
+        { beat: 24.10, notes: [95], vel: 0.30 },
+        { beat: 27.12, notes: [98], vel: 0.28 },
+        { beat: 30.10, notes: [100], vel: 0.30 },
+        { beat: 36.10, notes: [93], vel: 0.28 },
+        { beat: 42.10, notes: [91], vel: 0.25 },
+        { beat: 47.02, notes: [83], vel: 0.26 }
+      ];
+
+      const SKY_PAD_CHORDS = {
+        0:  [52, 59, 64, 67], // Em7
+        6:  [48, 55, 64, 67], // Cmaj7
+        12: [50, 57, 62, 66], // Dadd9
+        18: [47, 54, 63, 66], // B7
+        24: [52, 59, 66, 67], // Em9
+        30: [48, 55, 62, 64], // Cmaj9
+        36: [50, 57, 62, 66], // D
+        42: [45, 52, 60, 64], // Am7
+        45: [47, 54, 63, 66]  // B7
+      };
+
       class SoundEngine {
         constructor() {
           this.ctx = null;
           this.enabled = true;
+          this.musicEnabled = true;
+          this.musicVolumeRatio = 0.65; // 0.0 .. 1.0
+          this.musicMasterGain = null;
+          this.convolver = null;
+          this.masterDelay = null;
+          this.compressor = null;
+          this.isMusicPlaying = false;
+          this.nextBeatTime = 0;
+          this.currentBeat = 0;
+          this.currentCycle = 0;
+          this.musicTimer = null;
+          this.beatDuration = 0.68;
         }
 
         init() {
@@ -820,25 +1145,304 @@
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (AudioCtx) {
               this.ctx = new AudioCtx();
+              this._setupMusicBus();
             }
           }
           if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            this.ctx.resume().catch(() => {});
+          }
+          if (this.musicEnabled && !this.isMusicPlaying && this.ctx) {
+            this.startMusic();
+          }
+        }
+
+        _setupMusicBus() {
+          if (!this.ctx) return;
+          const ctx = this.ctx;
+
+          this.compressor = ctx.createDynamicsCompressor();
+          this.compressor.threshold.value = -12;
+          this.compressor.knee.value = 14;
+          this.compressor.ratio.value = 3.5;
+          this.compressor.attack.value = 0.008;
+          this.compressor.release.value = 0.28;
+
+          this.musicMasterGain = ctx.createGain();
+          this.musicMasterGain.gain.value = this.musicEnabled ? this.musicVolumeRatio * 0.072 : 0.0;
+
+          this.musicMasterGain.connect(this.compressor);
+          this.compressor.connect(ctx.destination);
+
+          // 1. Stereo Feedback Delay ("Vast Sky Echo")
+          this.masterDelay = ctx.createGain();
+          this.masterDelay.gain.value = 0.36;
+
+          const delay1 = ctx.createDelay(3.0);
+          delay1.delayTime.value = 0.44;
+          const delay2 = ctx.createDelay(3.0);
+          delay2.delayTime.value = 0.68;
+
+          const fb1 = ctx.createGain();
+          fb1.gain.value = 0.34;
+          const fb2 = ctx.createGain();
+          fb2.gain.value = 0.26;
+
+          const dampFilter = ctx.createBiquadFilter();
+          dampFilter.type = 'lowpass';
+          dampFilter.frequency.value = 1050;
+
+          this.masterDelay.connect(delay1);
+          this.masterDelay.connect(delay2);
+          delay1.connect(dampFilter);
+          delay2.connect(dampFilter);
+          dampFilter.connect(this.musicMasterGain);
+          dampFilter.connect(fb1);
+          fb1.connect(delay2);
+          dampFilter.connect(fb2);
+          fb2.connect(delay1);
+
+          // 2. Synthesized Stereo Concert Hall Convolution Reverb (Warm 2.5s Impulse Response)
+          try {
+            const sampleRate = ctx.sampleRate || 44100;
+            const length = Math.floor(sampleRate * 2.5);
+            const impulse = ctx.createBuffer(2, length, sampleRate);
+            for (let ch = 0; ch < 2; ch++) {
+              const data = impulse.getChannelData(ch);
+              let lp = 0;
+              for (let i = 0; i < length; i++) {
+                const t = i / length;
+                const env = Math.pow(1.0 - t, 2.6) * (t < 0.02 ? t / 0.02 : 1.0);
+                const white = (Math.random() * 2.0 - 1.0) * env;
+                // Smooth lowpass damping on reverb tail
+                lp = lp * 0.72 + white * 0.28;
+                data[i] = lp * 0.45;
+              }
+            }
+            this.convolver = ctx.createConvolver();
+            this.convolver.buffer = impulse;
+            const revGain = ctx.createGain();
+            revGain.gain.value = 0.52;
+            this.convolver.connect(revGain);
+            revGain.connect(this.musicMasterGain);
+          } catch (e) {
+            this.convolver = null;
+          }
+        }
+
+        setMusicVolume(ratio) {
+          this.musicVolumeRatio = Math.max(0, Math.min(1, ratio));
+          if (this.musicMasterGain && this.ctx) {
+            const target = this.musicEnabled ? this.musicVolumeRatio * 0.072 : 0.0;
+            this.musicMasterGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+          }
+        }
+
+        toggleMusic(forceState) {
+          this.musicEnabled = typeof forceState === 'boolean' ? forceState : !this.musicEnabled;
+          if (this.musicEnabled) {
+            this.init();
+            if (!this.isMusicPlaying) this.startMusic();
+            if (this.musicMasterGain && this.ctx) {
+              this.musicMasterGain.gain.setTargetAtTime(this.musicVolumeRatio * 0.072, this.ctx.currentTime, 0.08);
+            }
+          } else {
+            if (this.musicMasterGain && this.ctx) {
+              this.musicMasterGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.06);
+            }
+          }
+          return this.musicEnabled;
+        }
+
+        startMusic() {
+          if (!this.ctx || this.isMusicPlaying) return;
+          this.isMusicPlaying = true;
+          this.nextBeatTime = this.ctx.currentTime + 0.2;
+          if (this.musicTimer) clearInterval(this.musicTimer);
+          this.musicTimer = setInterval(() => this._scheduleMusic(), 50);
+        }
+
+        _playConcertPianoNote(midiNote, time, velocity, sustainMult = 1.0) {
+          if (!this.ctx || !this.musicEnabled || this.musicVolumeRatio <= 0.001) return;
+          const ctx = this.ctx;
+          const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+          const dur = 4.6 * sustainMult;
+
+          // 1. Warm fundamental string
+          const osc1 = ctx.createOscillator();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(freq, time);
+
+          // 2. Slightly detuned unison string for natural grand piano chorus warmth
+          const osc2 = ctx.createOscillator();
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(freq, time);
+          if (osc2.detune) osc2.detune.setValueAtTime(3.5, time);
+
+          // 3. Soft 2nd harmonic overtone that decays quickly after hammer strike
+          const osc3 = ctx.createOscillator();
+          osc3.type = 'sine';
+          osc3.frequency.setValueAtTime(freq * 2.0, time);
+          if (osc3.detune) osc3.detune.setValueAtTime(-3.0, time);
+
+          const noteGain = ctx.createGain();
+          const maxVol = velocity * 0.82;
+          noteGain.gain.setValueAtTime(0.0001, time);
+          noteGain.gain.linearRampToValueAtTime(maxVol, time + 0.022);
+          noteGain.gain.exponentialRampToValueAtTime(maxVol * 0.22, time + 1.15 * sustainMult);
+          noteGain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+          const overtoneGain = ctx.createGain();
+          overtoneGain.gain.value = 0.11;
+
+          const harm2Gain = ctx.createGain();
+          harm2Gain.gain.setValueAtTime(velocity * 0.09, time);
+          harm2Gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.42);
+
+          // Dynamic velocity-sensitive lowpass filter (felt hammer tone)
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          const cutoffStart = Math.min(freq * 3.2 + 750 * velocity, 3600);
+          filter.frequency.setValueAtTime(cutoffStart, time);
+          filter.frequency.exponentialRampToValueAtTime(Math.max(180, freq * 1.15), time + 2.3);
+
+          osc1.connect(noteGain);
+          osc2.connect(overtoneGain);
+          overtoneGain.connect(noteGain);
+          osc3.connect(harm2Gain);
+          harm2Gain.connect(noteGain);
+
+          noteGain.connect(filter);
+
+          // Natural piano stereo spread (low notes slightly left, high notes slightly right)
+          let outNode = filter;
+          if (ctx.createStereoPanner) {
+            const panner = ctx.createStereoPanner();
+            const pan = Math.max(-0.45, Math.min(0.45, (midiNote - 62) * 0.016));
+            panner.pan.setValueAtTime(pan, time);
+            filter.connect(panner);
+            outNode = panner;
+          }
+
+          outNode.connect(this.musicMasterGain);
+          outNode.connect(this.masterDelay);
+          if (this.convolver) outNode.connect(this.convolver);
+
+          osc1.start(time);
+          osc1.stop(time + dur + 0.05);
+          osc2.start(time);
+          osc2.stop(time + dur + 0.05);
+          osc3.start(time);
+          osc3.stop(time + 0.46);
+        }
+
+        _playCelestaBell(midiNote, time, velocity) {
+          if (!this.ctx || !this.musicEnabled || this.musicVolumeRatio <= 0.001) return;
+          const ctx = this.ctx;
+          const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, time);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, time);
+          gain.gain.linearRampToValueAtTime(velocity * 0.42, time + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, time + 2.8);
+
+          osc.connect(gain);
+          gain.connect(this.masterDelay);
+          if (this.convolver) gain.connect(this.convolver);
+
+          osc.start(time);
+          osc.stop(time + 2.9);
+        }
+
+        _playSkyPadChord(midiNotes, time) {
+          if (!this.ctx || !this.musicEnabled || this.musicVolumeRatio <= 0.001) return;
+          const ctx = this.ctx;
+          const padFilter = ctx.createBiquadFilter();
+          padFilter.type = 'lowpass';
+          padFilter.frequency.setValueAtTime(620, time);
+
+          const padGain = ctx.createGain();
+          padGain.gain.setValueAtTime(0.0001, time);
+          padGain.gain.linearRampToValueAtTime(0.052, time + 1.35);
+          padGain.gain.exponentialRampToValueAtTime(0.0001, time + 4.4);
+
+          padFilter.connect(padGain);
+          padGain.connect(this.masterDelay);
+          if (this.convolver) padGain.connect(this.convolver);
+
+          midiNotes.forEach((midiNote, idx) => {
+            const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+            const osc = ctx.createOscillator();
+            osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(freq, time);
+            if (osc.detune) osc.detune.setValueAtTime((idx - 1.5) * 4.5, time);
+            osc.connect(padFilter);
+            osc.start(time);
+            osc.stop(time + 4.5);
+          });
+        }
+
+        _scheduleMusic() {
+          if (!this.isMusicPlaying || !this.ctx || this.ctx.state !== 'running') return;
+
+          while (this.nextBeatTime < this.ctx.currentTime + 0.22) {
+            const cb = this.currentBeat;
+            const events = YORU_NO_HIMAWARI_SCORE.filter(
+              (e) => Math.floor(e.beat) === cb || (e.beat > cb && e.beat < cb + 1)
+            );
+
+            events.forEach((event) => {
+              const humanize = (Math.random() * 0.022) - 0.011;
+              const playTime = Math.max(this.ctx.currentTime, this.nextBeatTime + (event.beat - cb) * this.beatDuration + humanize);
+              event.notes.forEach((note, nIdx) => {
+                // Slight arpeggio roll on two-note chords for expressive piano touch
+                const roll = nIdx * 0.018;
+                this._playConcertPianoNote(note, playTime + roll, event.vel, event.sustain || 1.0);
+              });
+            });
+
+            // Shimmering celesta bell layer on upper harmonics
+            const shimmerEvents = CELESTA_SHIMMER_OVERLAY.filter(
+              (e) => Math.floor(e.beat) === cb || (e.beat > cb && e.beat < cb + 1)
+            );
+            shimmerEvents.forEach((event) => {
+              const playTime = Math.max(this.ctx.currentTime, this.nextBeatTime + (event.beat - cb) * this.beatDuration);
+              event.notes.forEach((note) => this._playCelestaBell(note, playTime, event.vel));
+            });
+
+            // Warm polyphonic sky pad chords
+            if (SKY_PAD_CHORDS[cb]) {
+              this._playSkyPadChord(SKY_PAD_CHORDS[cb], Math.max(this.ctx.currentTime, this.nextBeatTime));
+            }
+
+            // Expressive rubato: slight breath at the end of bar 4 (beat 23) and bar 8 (beat 47)
+            const rubato = (cb === 23 || cb === 47) ? 1.14 : 1.0;
+            this.currentBeat++;
+            this.nextBeatTime += this.beatDuration * rubato;
+
+            if (this.currentBeat >= 48) {
+              this.currentBeat = 0;
+              this.currentCycle++;
+            }
           }
         }
 
         playSelect() {
-          if (!this.enabled) return;
+          if (!this.enabled || this.musicVolumeRatio <= 0.001) return;
           this.init();
           if (!this.ctx) return;
+          const v = this.musicVolumeRatio;
           const now = this.ctx.currentTime;
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'sine';
           osc.frequency.setValueAtTime(520, now);
           osc.frequency.exponentialRampToValueAtTime(780, now + 0.065);
-          gain.gain.setValueAtTime(0.08, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+          gain.gain.setValueAtTime(0.08 * v, now);
+          gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.07);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(now);
@@ -846,9 +1450,10 @@
         }
 
         playWoodPlace(isHeavy = true) {
-          if (!this.enabled) return;
+          if (!this.enabled || this.musicVolumeRatio <= 0.001) return;
           this.init();
           if (!this.ctx) return;
+          const v = this.musicVolumeRatio;
           const now = this.ctx.currentTime;
 
           // Rich wooden thud + brass ring resonance
@@ -859,8 +1464,8 @@
           osc.frequency.setValueAtTime(baseFreq, now);
           osc.frequency.exponentialRampToValueAtTime(48, now + 0.09);
 
-          oscGain.gain.setValueAtTime(0.32, now);
-          oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+          oscGain.gain.setValueAtTime(0.32 * v, now);
+          oscGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.095);
           osc.connect(oscGain);
           oscGain.connect(this.ctx.destination);
           osc.start(now);
@@ -872,8 +1477,8 @@
           clickOsc.type = 'sine';
           clickOsc.frequency.setValueAtTime(1120, now);
           clickOsc.frequency.exponentialRampToValueAtTime(290, now + 0.025);
-          clickGain.gain.setValueAtTime(0.14, now);
-          clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.028);
+          clickGain.gain.setValueAtTime(0.14 * v, now);
+          clickGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.028);
           clickOsc.connect(clickGain);
           clickGain.connect(this.ctx.destination);
           clickOsc.start(now);
@@ -881,9 +1486,10 @@
         }
 
         playWinChord() {
-          if (!this.enabled) return;
+          if (!this.enabled || this.musicVolumeRatio <= 0.001) return;
           this.init();
           if (!this.ctx) return;
+          const v = this.musicVolumeRatio;
           const now = this.ctx.currentTime;
           const notes = [523.25, 659.25, 783.99, 1046.5];
           notes.forEach((freq, idx) => {
@@ -891,9 +1497,9 @@
             const gain = this.ctx.createGain();
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(freq, now + idx * 0.07);
-            gain.gain.setValueAtTime(0.001, now + idx * 0.07);
-            gain.gain.linearRampToValueAtTime(0.14, now + idx * 0.07 + 0.03);
-            gain.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.07 + 0.85);
+            gain.gain.setValueAtTime(0.0005, now + idx * 0.07);
+            gain.gain.linearRampToValueAtTime(0.14 * v, now + idx * 0.07 + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0005, now + idx * 0.07 + 0.85);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
             osc.start(now + idx * 0.07);
@@ -903,6 +1509,15 @@
       }
 
       const sound = new SoundEngine();
+
+      document.addEventListener('visibilitychange', () => {
+        if (!sound.ctx) return;
+        if (document.hidden) {
+          sound.ctx.suspend().catch(() => {});
+        } else if (sound.enabled || sound.musicEnabled) {
+          sound.ctx.resume().catch(() => {});
+        }
+      });
 
       // =========================================================================
       // 2. THREE MEN'S MORRIS GAME LOGIC & MINIMAX AI
@@ -955,11 +1570,21 @@
         turn: 1,                 // 1 or 2
         placedCount: { 1: 0, 2: 0 },
         selectedNode: null,
-        winner: 0,
+        winner: 0,               // 0 = none, 1 = White, 2 = Black, 3 = Mutual Draw
         winningLine: null,
         history: [],
+        positionCounts: {},
+        drawOfferActive: false,
+        drawVotes: { 1: false, 2: false },
+        activePosKey: '',
+        matchStartTime: 0,
+        turnStartTime: 0,
+        matchElapsedFixed: null,
         scores: { 1: 0, 2: 0 },
         opponentMode: 'pvp',     // 'pvp', 'ai_smart', 'ai_casual', 'online'
+        aiSideMode: 'white',     // 'white', 'black', 'alternate'
+        humanSide: 1,            // 1 (White) or 2 (Black) when playing vs AI
+        ambiance: 'sky_day',     // 'sky_day', 'sky_sunset', 'sky_night', 'candle', 'daylight', 'royal'
         useDiagonals: true,
         autoRotateCamera: false,
         hintEdge: null,
@@ -968,6 +1593,9 @@
         onlineConnected: false,
         roomCode: ''
       };
+
+      let aiTimerId = null;
+      let joinTimeoutId = null;
 
       function getWinningLines() {
         return gameState.useDiagonals
@@ -1043,12 +1671,12 @@
         return score;
       }
 
-      function computeBestMove(player, maxDepth = 6) {
+      function computeBestMove(player, maxDepth = 6, isHintRequest = false) {
         const legalMoves = getLegalMoves(gameState.board, gameState.placedCount, player);
         if (legalMoves.length === 0) return null;
 
         // Casual AI picks winning move if immediate, otherwise semi-random
-        if (gameState.opponentMode === 'ai_casual' && player === 2) {
+        if (!isHintRequest && gameState.opponentMode === 'ai_casual' && player !== gameState.humanSide) {
           for (const mv of legalMoves) {
             const nextB = gameState.board.slice();
             if (mv.type === 'place') nextB[mv.to] = player;
@@ -1157,17 +1785,21 @@
       })();
 
       function noise2D(x, y) {
-        const xi = Math.floor(x) & 255;
-        const yi = Math.floor(y) & 255;
-        const xf = x - Math.floor(x);
-        const yf = y - Math.floor(y);
+        const xiFloor = x >= 0 ? (x | 0) : Math.floor(x);
+        const yiFloor = y >= 0 ? (y | 0) : Math.floor(y);
+        const xi = xiFloor & 255;
+        const yi = yiFloor & 255;
+        const xf = x - xiFloor;
+        const yf = y - yiFloor;
         // Quintic Perlin fade curve (6t^5 - 15t^4 + 10t^3) eliminates blocky 2nd-derivative grid artifacts on bump maps
         const u = xf * xf * xf * (xf * (xf * 6.0 - 15.0) + 10.0);
         const v = yf * yf * yf * (yf * (yf * 6.0 - 15.0) + 10.0);
-        const aa = _perm[_perm[xi] + yi];
-        const ab = _perm[_perm[xi] + yi + 1];
-        const ba = _perm[_perm[xi + 1] + yi];
-        const bb = _perm[_perm[xi + 1] + yi + 1];
+        const pxi = _perm[xi];
+        const pxi1 = _perm[xi + 1];
+        const aa = _perm[pxi + yi];
+        const ab = _perm[pxi + yi + 1];
+        const ba = _perm[pxi1 + yi];
+        const bb = _perm[pxi1 + yi + 1];
         const x1 = aa + u * (ba - aa);
         const x2 = ab + u * (bb - ab);
         return (x1 + v * (x2 - x1)) * (1.0 / 255.0);
@@ -1175,22 +1807,26 @@
 
       // 100% mathematically periodic 2D noise: wraps u and v into [0,1) FIRST so any phase offset is strictly seamless!
       function noise2DPeriodic(u, v, px, py) {
-        const uw = ((u % 1.0) + 1.0) % 1.0;
-        const vw = ((v % 1.0) + 1.0) % 1.0;
+        const uw = u - Math.floor(u);
+        const vw = v - Math.floor(v);
         const x = uw * px;
         const y = vw * py;
-        const x0 = Math.floor(x) % px;
-        const y0 = Math.floor(y) % py;
+        const xFloor = x | 0;
+        const yFloor = y | 0;
+        const x0 = xFloor % px;
+        const y0 = yFloor % py;
         const x1 = (x0 + 1) % px;
         const y1 = (y0 + 1) % py;
-        const xf = x - Math.floor(x);
-        const yf = y - Math.floor(y);
+        const xf = x - xFloor;
+        const yf = y - yFloor;
         const sx = xf * xf * xf * (xf * (xf * 6.0 - 15.0) + 10.0);
         const sy = yf * yf * yf * (yf * (yf * 6.0 - 15.0) + 10.0);
-        const aa = _perm[_perm[x0 & 255] + (y0 & 255)];
-        const ab = _perm[_perm[x0 & 255] + (y1 & 255)];
-        const ba = _perm[_perm[x1 & 255] + (y0 & 255)];
-        const bb = _perm[_perm[x1 & 255] + (y1 & 255)];
+        const px0 = _perm[x0 & 255];
+        const px1 = _perm[x1 & 255];
+        const aa = _perm[px0 + (y0 & 255)];
+        const ab = _perm[px0 + (y1 & 255)];
+        const ba = _perm[px1 + (y0 & 255)];
+        const bb = _perm[px1 + (y1 & 255)];
         const lerp1 = aa + sx * (ba - aa);
         const lerp2 = ab + sx * (bb - ab);
         return (lerp1 + sy * (lerp2 - lerp1)) * (1.0 / 255.0);
@@ -1767,22 +2403,38 @@
       // =========================================================================
       const container = document.getElementById('canvas-container');
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0d0907);
-      scene.fog = new THREE.FogExp2(0x0d0907, 0.032);
+      scene.background = new THREE.Color(0x003ec2);
+      scene.fog = new THREE.FogExp2(0x5a99eb, 0.0038);
 
       const camera = new THREE.PerspectiveCamera(
         42,
         window.innerWidth / window.innerHeight,
         0.1,
-        100
+        360
       );
 
-      const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        powerPreference: 'high-performance'
-      });
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          powerPreference: 'high-performance'
+        });
+      } catch (webglErr) {
+        container.innerHTML = '<div class="fixed inset-0 flex items-center justify-center p-6 text-center text-amber-100"><div class="glass-modal rounded-3xl p-6 max-w-sm"><h2 class="font-serif-title text-2xl font-bold text-amber-200">Требуется WebGL</h2><p class="text-xs text-stone-300 mt-2 leading-relaxed">Для отображения 3D-доски включите аппаратное ускорение WebGL в настройках браузера.</p></div></div>';
+        return;
+      }
+      function getUniversalPixelRatio() {
+        const rawDpr = Math.min(window.devicePixelRatio || 1, 2.0);
+        const maxPixelBudget = 2560 * 1440; // ~3.68M pixels universal ceiling (2K QHD equivalent)
+        const area = Math.max(1, window.innerWidth * window.innerHeight);
+        if (area * rawDpr * rawDpr > maxPixelBudget) {
+          return Math.max(1.0, Math.sqrt(maxPixelBudget / area));
+        }
+        return rawDpr;
+      }
+
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
+      renderer.setPixelRatio(getUniversalPixelRatio());
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputEncoding = THREE.sRGBEncoding;
@@ -1799,31 +2451,534 @@
       const mainSpot = new THREE.DirectionalLight(0xfff1d6, 1.28);
       mainSpot.position.set(5.5, 11.5, 6.2);
       mainSpot.castShadow = true;
-      mainSpot.shadow.mapSize.width = 2048;
-      mainSpot.shadow.mapSize.height = 2048;
+      mainSpot.shadow.mapSize.width = 1024;
+      mainSpot.shadow.mapSize.height = 1024;
       mainSpot.shadow.camera.near = 2;
       mainSpot.shadow.camera.far = 25;
-      const d = 6.2;
+      const d = 6.5;
       mainSpot.shadow.camera.left = -d;
       mainSpot.shadow.camera.right = d;
       mainSpot.shadow.camera.top = d;
       mainSpot.shadow.camera.bottom = -d;
-      mainSpot.shadow.bias = -0.0005;
+      mainSpot.shadow.bias = -0.0006;
       scene.add(mainSpot);
 
-      // Warm candle point light on table corner
-      const candleLight = new THREE.PointLight(0xff9d3b, 1.18, 14, 1.8);
-      candleLight.position.set(-3.85, 2.35, -3.55);
-      candleLight.castShadow = true;
-      candleLight.shadow.mapSize.width = 1024;
-      candleLight.shadow.mapSize.height = 1024;
-      candleLight.shadow.bias = -0.001;
+      // Warm candle point light on table corner (castShadow = false eliminates 6 cube-shadow passes per frame!)
+      let baseCandleIntensity = 1.15;
+      const candleLight = new THREE.PointLight(0xff9d3b, baseCandleIntensity, 14, 1.8);
+      candleLight.position.set(-3.45, 2.36, -3.20);
+      candleLight.castShadow = false;
       scene.add(candleLight);
 
       // Rim fill light for obsidian pieces
       const rimLight = new THREE.DirectionalLight(0x9bb8ff, 0.38);
       rimLight.position.set(-6, 5, -5);
       scene.add(rimLight);
+
+      // --- Pre-Baked 512x512 4-Octave Independent Worley Dome LUT (Replaces 36 exp() + 36 sqrt() + 4 log() per call with 4 texture fetches!) ---
+      function createSkyCloudLUT() {
+        const size = 512;
+        const N = 16; // 16x16 periodic cells -> 32x32 texels per cell
+        const data = new Uint8Array(size * size * 4);
+
+        function hash2D(cx, cy, seed) {
+          let h = (cx * 374761393 + cy * 668265263 + seed * 1442695041) | 0;
+          h = ((h ^ (h >>> 13)) * 1274126177) | 0;
+          return ((h ^ (h >>> 16)) >>> 0) / 4294967296.0;
+        }
+
+        function makeWorleyGrid(seed) {
+          const ptsX = new Float32Array(N * N);
+          const ptsY = new Float32Array(N * N);
+          for (let cy = 0; cy < N; cy++) {
+            for (let cx = 0; cx < N; cx++) {
+              const idx = cy * N + cx;
+              ptsX[idx] = 0.15 + 0.70 * hash2D(cx, cy, seed);
+              ptsY[idx] = 0.15 + 0.70 * hash2D(cx, cy, seed + 7919);
+            }
+          }
+          return { ptsX, ptsY };
+        }
+
+        // 4 statistically independent Worley cellular dome grids for the 4 octaves of fbmCauliflower
+        const grids = [
+          makeWorleyGrid(101),
+          makeWorleyGrid(307),
+          makeWorleyGrid(619),
+          makeWorleyGrid(947)
+        ];
+
+        for (let y = 0; y < size; y++) {
+          const py = (y / size) * N;
+          const iy = Math.floor(py);
+          const fy = py - iy;
+
+          for (let x = 0; x < size; x++) {
+            const px = (x / size) * N;
+            const ix = Math.floor(px);
+            const fx = px - ix;
+            const idx = (y * size + x) * 4;
+
+            for (let c = 0; c < 4; c++) {
+              const g = grids[c];
+              let sumExp = 0.0;
+              for (let dy = -1; dy <= 1; dy++) {
+                const cy = (iy + dy + N) % N;
+                const rowOff = cy * N;
+                for (let dx = -1; dx <= 1; dx++) {
+                  const cx = (ix + dx + N) % N;
+                  const cIdx = rowOff + cx;
+                  const vx = dx + g.ptsX[cIdx] - fx;
+                  const vy = dy + g.ptsY[cIdx] - fy;
+                  sumExp += Math.exp(-5.8 * Math.hypot(vx, vy));
+                }
+              }
+              const minDist = Math.max(0.0, -Math.log(Math.max(sumExp, 0.0001)) / 5.8);
+              const r = Math.min(1.0, minDist / 0.76);
+              const wVal = 1.0 - r * r * (3.0 - 2.0 * r);
+              data[idx + c] = Math.min(255, Math.max(0, Math.round(wVal * 255)));
+            }
+          }
+        }
+
+        const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.magFilter = THREE.LinearFilter;
+        tex.minFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        tex.needsUpdate = true;
+        return tex;
+      }
+
+      const skyCloudLUT = createSkyCloudLUT();
+
+      // --- Volumetric Cloudy Sky Dome & 3D Cumulus Clouds (Aozora / Yuugure / Yoru from tmm4) ---
+      const skyPresets = {
+        sky_day: {
+          topColor: new THREE.Color(0x003ec2),
+          bottomColor: new THREE.Color(0x6ebbff),
+          cloudColor: new THREE.Color(0xffffff),
+          cloudShadow: new THREE.Color(0x7ca6d8),
+          fogColor: new THREE.Color(0x5a99eb),
+          starVisibility: 0.0
+        },
+        sky_sunset: {
+          topColor: new THREE.Color(0x1b1e54),
+          bottomColor: new THREE.Color(0xff7d42),
+          cloudColor: new THREE.Color(0xffe4bd),
+          cloudShadow: new THREE.Color(0x6d4375),
+          fogColor: new THREE.Color(0xc96f5b),
+          starVisibility: 0.28
+        },
+        sky_night: {
+          topColor: new THREE.Color(0x03081a),
+          bottomColor: new THREE.Color(0x132e5e),
+          cloudColor: new THREE.Color(0xc4dcff),
+          cloudShadow: new THREE.Color(0x182b52),
+          fogColor: new THREE.Color(0x0c1d3d),
+          starVisibility: 1.0
+        }
+      };
+
+      const skyUniforms = {
+        time: { value: 0.0 },
+        uCamTheta: { value: 0.0 },
+        uCamPhi: { value: 0.72 },
+        cloudLUT: { value: skyCloudLUT },
+        topColor: { value: skyPresets.sky_day.topColor.clone() },
+        bottomColor: { value: skyPresets.sky_day.bottomColor.clone() },
+        cloudColor: { value: skyPresets.sky_day.cloudColor.clone() },
+        cloudShadow: { value: skyPresets.sky_day.cloudShadow.clone() },
+        starVisibility: { value: 0.0 }
+      };
+
+      const skyMat = new THREE.ShaderMaterial({
+        uniforms: skyUniforms,
+        side: THREE.BackSide,
+        depthTest: true,
+        depthWrite: false,
+        vertexShader: `
+          varying vec3 vViewRay;
+          void main() {
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            // View-space ray from camera (x = screen right, y = screen up, -z = screen forward)
+            vViewRay = (viewMatrix * vec4(worldPosition.xyz - cameraPosition, 0.0)).xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          uniform float uCamTheta;
+          uniform float uCamPhi;
+          uniform sampler2D cloudLUT;
+          uniform vec3 topColor;
+          uniform vec3 bottomColor;
+          uniform vec3 cloudColor;
+          uniform vec3 cloudShadow;
+          uniform float starVisibility;
+          varying vec3 vViewRay;
+
+          float hash12(vec2 p) {
+            vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.x + p3.y) * p3.z);
+          }
+
+          vec2 hash22(vec2 p) {
+            vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+            p3 += dot(p3, p3.yzx + 33.33);
+            return fract((p3.xx + p3.yz) * p3.zy);
+          }
+
+          float hash13(vec3 p3) {
+            p3 = fract(p3 * 0.1031);
+            p3 += dot(p3, p3.zyx + 31.32);
+            return fract((p3.x + p3.y) * p3.z);
+          }
+
+          // Quintic C2-continuous 2D value noise (pure register ALU -> razor-sharp floating-point fractal wisps!)
+          float noise2(vec2 x) {
+            vec2 i = floor(x);
+            vec2 f = fract(x);
+            vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+
+            float a = hash12(i + vec2(0.0, 0.0));
+            float b = hash12(i + vec2(1.0, 0.0));
+            float c = hash12(i + vec2(0.0, 1.0));
+            float d = hash12(i + vec2(1.0, 1.0));
+
+            return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+          }
+
+          const mat2 m2 = mat2(0.80, -0.60, 0.60, 0.80);
+
+          // 4-octave smooth cauliflower billow hierarchy via 4 independent Worley LUT channels (replaces 36 exp() + 4 log() calls with 4 fetches!)
+          float fbmCauliflower(vec2 p) {
+            float w0 = texture2D(cloudLUT, p * 0.0625).r;
+            p = m2 * p * 2.03 + vec2(7.3, 11.9);
+            float w1 = texture2D(cloudLUT, p * 0.0625).g;
+            p = m2 * p * 2.03 + vec2(7.3, 11.9);
+            float w2 = texture2D(cloudLUT, p * 0.0625).b;
+            p = m2 * p * 2.03 + vec2(7.3, 11.9);
+            float w3 = texture2D(cloudLUT, p * 0.0625).a;
+            return w0 * 0.54 + w1 * 0.2592 + w2 * 0.1244 + w3 * 0.0597;
+          }
+
+          // 6-octave smooth FBM for macro cloud clusters and fine turbulent edge wisps
+          float fbmSmooth(vec2 p) {
+            float v = 0.0;
+            float amp = 0.52;
+            for (int i = 0; i < 6; i++) {
+              v += amp * noise2(p);
+              p = m2 * p * 2.03 + vec2(13.1, 5.7);
+              amp *= 0.50;
+            }
+            return v;
+          }
+
+          // Fast C-infinity continuous height & base-slice evaluator for 3D volumetric base parallax & self-shadowing
+          // Returns vec2(coarseDensityField, height3D) using only 3 LUT fetches (skips all 12 edge-wisp octaves!)
+          vec2 sampleCumulusHeight(vec2 uv, float timeVal) {
+            vec2 windDir = vec2(0.06, -0.998);
+            vec2 wind = windDir * (timeVal * 0.022);
+            vec2 p = uv + wind;
+            vec2 warp = vec2(
+              noise2(p * 0.38 + vec2(0.0, timeVal * 0.003)) - 0.5,
+              noise2(p * 0.38 + vec2(9.2, -timeVal * 0.003)) - 0.5
+            ) * 0.48;
+            vec2 wp = p + warp;
+
+            float macro1 = noise2(wp * 0.32);
+            float macro2 = noise2(m2 * wp * 0.65 + vec2(4.2, 8.7));
+            float macro3 = noise2(m2 * wp * 1.32 + vec2(11.5, 2.3));
+            float macroField = macro1 * 0.56 + macro2 * 0.30 + macro3 * 0.14;
+
+            vec2 bp0 = wp * 0.78 - wind * 0.18;
+            float b0 = texture2D(cloudLUT, bp0 * 0.0625).r;
+            vec2 bp1 = m2 * bp0 * 2.03 + vec2(7.3, 11.9);
+            float b1 = texture2D(cloudLUT, bp1 * 0.0625).g;
+            vec2 bp2 = m2 * bp1 * 2.03 + vec2(7.3, 11.9);
+            float b2 = texture2D(cloudLUT, bp2 * 0.0625).b;
+            float billows = b0 * 0.56 + b1 * 0.28 + b2 * 0.14;
+
+            float coarse = macroField * 0.55 + billows * 0.45;
+            // Large-scale cloud mass drives the 3D height; billows only gently modulate it (no polka-dot shading)
+            float height3D = macroField * (0.62 + 0.38 * billows);
+            return vec2(coarse, height3D);
+          }
+
+          // Evaluates full sculptural Cumulus cloud density (with feathery edge wisps) & 3D dome height
+          // Returns vec3(density, height3D, billows)
+          vec3 sampleCumulus(vec2 uv, float timeVal, float coverageThresh) {
+            // Clouds sail away from the viewer toward the far horizon (fixed screen-space direction -> never swirls with the camera)
+            vec2 windDir = vec2(0.06, -0.998);
+            vec2 wind = windDir * (timeVal * 0.022);
+            vec2 p = uv + wind;
+
+            // Subtle domain warp for organic wind-sculpted flow
+            vec2 warp = vec2(
+              noise2(p * 0.38 + vec2(0.0, timeVal * 0.003)) - 0.5,
+              noise2(p * 0.38 + vec2(9.2, -timeVal * 0.003)) - 0.5
+            ) * 0.48;
+            vec2 wp = p + warp;
+
+            // 1. Macro thermal updraft mask (groups puffs into cohesive cumulus clouds with clear blue sky between them)
+            float macro1 = noise2(wp * 0.32);
+            float macro2 = noise2(m2 * wp * 0.65 + vec2(4.2, 8.7));
+            float macro3 = noise2(m2 * wp * 1.32 + vec2(11.5, 2.3));
+            float macroField = macro1 * 0.56 + macro2 * 0.30 + macro3 * 0.14;
+
+            // 2. Cauliflower cumulus domes (smooth C-infinity cellular hemispheres)
+            float billows = fbmCauliflower(wp * 0.78 - wind * 0.18);
+
+            // Fast early-out on clear blue sky pixels (skips all 12 wisp noise octaves!)
+            float coarse = macroField * 0.55 + billows * 0.45;
+            if (coarse < coverageThresh - 0.14) return vec3(0.0);
+
+            // 3. High-frequency turbulent wisps for feathery, photorealistic cloud margins
+            float wisps = fbmSmooth(wp * 2.6 - wind * 0.32);
+            float fineWisps = fbmSmooth(wp * 5.8 + vec2(wisps * 0.6));
+
+            // Additive sculpting so the outer silhouette is shaped by rounded cauliflower domes & feathery wisps
+            float baseCloud = coarse + (wisps - 0.5) * 0.16 + (fineWisps - 0.5) * 0.08;
+
+            // Continuous 3D dome height (same formula as sampleCumulusHeight -> consistent self-shadowing)
+            float height3D = macroField * (0.62 + 0.38 * billows) + (wisps - 0.5) * 0.02;
+
+            float raw = (baseCloud - coverageThresh) / (1.0 - coverageThresh);
+            float density = smoothstep(0.0, 0.23, max(0.0, raw));
+
+            return vec3(density, height3D, billows);
+          }
+
+          // High-altitude wispy Cirrus streaks
+          float sampleCirrus(vec2 uv, float timeVal) {
+            vec2 windDir = vec2(0.06, -0.998);
+            vec2 p = uv * 0.22 + windDir * (timeVal * 0.006);
+            float warp = fbmSmooth(p * 1.2);
+            vec2 wp = p + vec2(warp * 0.65, -warp * 0.35);
+            vec2 streakUV = vec2(wp.x * 1.1 + wp.y * 0.7, wp.y * 3.6);
+            float n1 = fbmSmooth(streakUV);
+            float n2 = fbmSmooth(streakUV * 2.4 + vec2(warp * 1.4, 0.0));
+            float c = smoothstep(0.56, 0.80, n1) * smoothstep(0.38, 0.75, n2);
+            return c * 0.36;
+          }
+
+          // Renders a volumetric Cumulus deck: bright sunlit cauliflower crowns on top, soft shaded flat bellies underneath
+          vec4 shadeCumulusDeck(
+            vec2 uv,
+            vec2 lightDir2D,
+            float timeVal,
+            float coverageThresh,
+            vec3 sunlitCol,
+            vec3 midShadowCol,
+            vec3 deepShadowCol,
+            vec3 skyBounceCol,
+            float sunDot
+          ) {
+            vec3 c = sampleCumulus(uv, timeVal, coverageThresh);
+            float density = c.x;
+            float h = c.y;
+            float billows = c.z;
+            if (density <= 0.001) return vec4(0.0);
+
+            // 3 taps toward the sun (above). Each tap returns (cloud coverage, height) -> two kinds of shadow at zero extra cost:
+            vec2 s1 = sampleCumulusHeight(uv + lightDir2D * 0.070, timeVal);
+            vec2 s2 = sampleCumulusHeight(uv + lightDir2D * 0.160, timeVal);
+            vec2 s3 = sampleCumulusHeight(uv + lightDir2D * 0.300, timeVal);
+
+            // (a) Large-scale "depth from the top of the cloud": how much cloud mass lies between this pixel and the sun.
+            //     Top edge of a cloud -> 0 (bright crown), deep inside / lower part -> 1 (shaded belly).
+            float m1 = smoothstep(coverageThresh - 0.04, coverageThresh + 0.14, s1.x);
+            float m2 = smoothstep(coverageThresh - 0.04, coverageThresh + 0.14, s2.x);
+            float m3 = smoothstep(coverageThresh - 0.04, coverageThresh + 0.14, s3.x);
+            float depthFromTop = m1 * 0.30 + m2 * 0.35 + m3 * 0.35;
+
+            // (b) Local puff occlusion: neighbouring taller billows toward the sun cast soft shadows into the creases
+            float puffOcclusion = smoothstep(0.0, 0.10, s1.y - h) * 0.55 + smoothstep(0.0, 0.14, s2.y - h) * 0.45;
+
+            // Thin margins are translucent -> they receive less shadow than the dense core
+            float coreThickness = smoothstep(0.25, 0.95, density);
+            float shadowAccum = (depthFromTop * 0.62 + puffOcclusion * 0.60) * mix(0.50, 1.0, coreThickness);
+
+            // Dome normal facing the sun (two scales: individual puffs + whole cloud body)
+            float slope = (s1.y - h) / 0.070 * 0.45 + (s2.y - h) / 0.160 * 0.55;
+            float domeFacingSun = smoothstep(-0.45, 0.45, -slope);
+
+            // Dual-lobe Beer-Lambert + multiple scattering (second lobe keeps shadows luminous, never muddy/black)
+            float transmittance = 0.60 * exp(-shadowAccum * 2.4) + 0.40 * exp(-shadowAccum * 0.8);
+            float directSun = transmittance * (0.42 + 0.58 * domeFacingSun);
+
+            // Elevation inside the cloud: low thin parts = base, tall billows = crown
+            float crownElevation = smoothstep(0.36, 0.62, h);
+
+            // Ambient: slate-blue mid shadow -> deeper belly tone only in the thick lower core
+            vec3 ambientCol = mix(midShadowCol, deepShadowCol, clamp(depthFromTop * coreThickness * 0.60, 0.0, 1.0));
+            // Soft blue sky bounce light from below on the underside
+            ambientCol = mix(ambientCol, skyBounceCol, depthFromTop * (1.0 - domeFacingSun) * 0.18);
+
+            float lightMix = clamp(directSun * 0.92 + crownElevation * 0.12 + (billows - 0.5) * 0.16, 0.0, 1.0);
+            lightMix = lightMix * lightMix * (3.0 - 2.0 * lightMix);
+            vec3 col = mix(ambientCol, sunlitCol, lightMix);
+
+            // Silver lining on thin sunlit margins
+            float thinMargin = (1.0 - density * 0.60) * smoothstep(0.0, 0.30, density);
+            float silver = (pow(sunDot, 5.0) * 0.42 + 0.22 * domeFacingSun) * thinMargin * transmittance;
+            col += vec3(1.0, 0.99, 0.94) * silver;
+
+            return vec4(col, density * 0.96);
+          }
+
+          void main() {
+            vec3 vr = normalize(vViewRay);
+
+            // ISOTROPIC 1:1 VIEW-PLANE PROJECTION + 2-SLICE 3D VOLUMETRIC PARALLAX:
+            // 1. Projecting via vr.xy / (-vr.z) makes the UV-to-pixel scale 100% uniform and 1:1 isotropic across the entire screen
+            //    from center to extreme left/right edges -> clouds NEVER stretch sideways at the edges of wide screens!
+            // 2. Camera orbit (uCamTheta) and tilt (uCamPhi) pan smoothly with multi-layer 3D altitude parallax and zero shear.
+            // 3. Each cloud is composited from a dark 3D base pedestal and an extruded sunlit cauliflower crown.
+            vec2 viewPlane = vr.xy / max(-vr.z, 0.15);
+
+            // GENTLE EDGE PERSPECTIVE (fixes the "flat backdrop" sliding at the screen edges while orbiting):
+            // A real distant sky viewed through a perspective camera moves FASTER at the left/right edges during a turn
+            // (same as the 3D table does), while a pure flat view-plane pans everything at one speed -> edges look painted on.
+            // Blend the flat plane 50/50 with a cylinder around the camera's own vertical axis (no swirl, no tilt):
+            //  - screen centre: 100% unchanged; edges: ~1.2x faster pan that follows the table's perspective motion
+            //  - static shape stays nearly isotropic (<= ~1.1x on 16:9, ~1.15x on ultra-wide extreme edges)
+            const float SKY_EDGE_PERSPECTIVE = 0.5;
+            float edgeCos = inversesqrt(1.0 + viewPlane.x * viewPlane.x);
+            vec2 cylPlane = vec2(atan(viewPlane.x), viewPlane.y * edgeCos);
+            vec2 skyPlane = mix(viewPlane, cylPlane, SKY_EDGE_PERSPECTIVE);
+            float viewAz = skyPlane.x;
+            float viewEl = skyPlane.y;
+
+            float skyAz = viewAz - uCamTheta * 0.95;
+            float pitchDelta = clamp(uCamPhi - 0.72, -0.50, 0.45);
+            float skyEl = viewEl + pitchDelta * 0.48;
+
+            // 1. Smooth Atmospheric Sky Gradient
+            float skyGrad = smoothstep(-0.92, 0.25, 0.743 * skyEl - 0.62);
+            vec3 horizonMist = mix(bottomColor, cloudColor, 0.22);
+            vec3 sky = mix(topColor, horizonMist, pow(skyGrad, 0.75));
+
+            if (starVisibility > 0.01) {
+              // Stars pinned to the sky dome (1:1 roundness all the way to screen edges)
+              vec2 starGrid = vec2(skyAz, skyEl) * 155.0;
+              vec2 starCell = floor(starGrid);
+              vec2 starFrac = fract(starGrid) - 0.5;
+              float starHash = hash12(starCell * 0.731 + 17.3);
+              if (starHash > 0.9965) {
+                vec2 jitter = (hash22(starCell + 3.1) - 0.5) * 0.5;
+                float distToCenter = length(starFrac - jitter);
+                float starShape = smoothstep(0.32, 0.0, distToCenter);
+                float twinkle = 0.55 + 0.45 * sin(time * 3.1 + starHash * 130.0);
+                sky += vec3(0.96, 0.98, 1.0) * starShape * twinkle * starVisibility;
+              }
+
+              // Occasional shooting stars (short ~0.9s streaks in the upper sky band of the current view)
+              vec2 meteorUV = vr.xy;
+              for (int m = 0; m < 2; m++) {
+                float mf = float(m);
+                float period = (m == 0) ? 8.5 : 13.0;
+                float timeOffset = mf * 5.7 + 2.2;
+                float cycle = floor((time + timeOffset) / period);
+                float phase = fract((time + timeOffset) / period);
+                float duration = 0.88;
+                float u = (phase * period) / duration;
+                if (u > 0.0 && u < 1.0) {
+                  vec2 rnd = hash22(vec2(cycle * 7.13 + mf * 19.1, mf * 31.7 + 3.0));
+                  vec2 startPos = (rnd - 0.5) * vec2(1.0, 0.12) + vec2(0.0, 0.33);
+                  float side = (hash12(vec2(cycle * 1.37, mf * 5.1)) > 0.5) ? 1.0 : -1.0;
+                  float ang = -0.30 - 0.45 * hash12(vec2(cycle * 3.71, mf * 11.3));
+                  vec2 mDir = vec2(cos(ang) * side, sin(ang));
+                  float travelLen = 0.42;
+                  vec2 headPos = startPos + mDir * (u * travelLen);
+                  float tailLen = 0.16;
+                  vec2 toFrag = meteorUV - headPos;
+                  float along = dot(toFrag, -mDir);
+                  float clampedAlong = clamp(along, 0.0, tailLen);
+                  float perp = length(toFrag + mDir * clampedAlong);
+                  float coreLine = exp(-perp * perp * 9000.0);
+                  float softGlow = exp(-perp * perp * 600.0) * 0.36;
+                  float tailFade = smoothstep(tailLen, 0.0, along) * smoothstep(-0.012, 0.003, along);
+                  float headSpark = exp(-length(toFrag) * 110.0) * 1.45;
+                  float lifeEnvelope = sin(u * 3.14159265);
+                  vec3 meteorCol = mix(vec3(0.72, 0.88, 1.0), vec3(1.0, 0.99, 0.92), coreLine);
+                  sky += meteorCol * ((coreLine + softGlow) * tailFade + headSpark) * lifeEnvelope * starVisibility * 1.75;
+                }
+              }
+            }
+
+            // Sun pinned to the sky dome (wraps every full 2*PI = 360 deg orbit)
+            float sunPeriod = 6.2831853 * 0.95;
+            vec2 sunPos = vec2(0.62, 0.68);
+            vec2 sunDelta = vec2(mod(skyAz - sunPos.x + sunPeriod * 0.5, sunPeriod) - sunPeriod * 0.5, skyEl - sunPos.y);
+            float sunDot = clamp(1.0 - 0.5 * dot(sunDelta, sunDelta), 0.0, 1.0);
+
+            // Subtle solar glow
+            sky += vec3(1.0, 0.95, 0.85) * pow(sunDot, 8.0) * 0.16;
+            sky += vec3(1.0, 0.98, 0.92) * pow(sunDot, 64.0) * 0.45;
+
+            // 2. Strict 1:1 Isotropic Multi-Altitude Cloud Mapping (zero horizontal edge stretching):
+            float elFar  = viewEl + pitchDelta * 0.46;
+            float elNear = viewEl + pitchDelta * 0.64;
+
+            vec2 cloudUV = vec2(skyAz * 2.15, elNear * 2.15 - 1.15);
+            vec2 farUV   = vec2(skyAz * 3.45 + 14.2, elFar * 3.45 + 6.95);
+
+            // Light comes from the sun ABOVE (up-right): bright sunlit crowns on top, deep 3D shaded bellies underneath
+            vec2 lightDir2D = normalize(vec2(0.48, 0.88));
+            float tSky = 180.0 + time;
+
+            vec3 color = sky;
+
+            // 3. High-Altitude Wispy Cirrus Layer
+            float cirrusAlpha = sampleCirrus(cloudUV * 1.15, tSky);
+            vec3 cirrusCol = mix(sky, cloudColor, 0.85) + vec3(1.0, 0.96, 0.88) * pow(sunDot, 5.0) * 0.18;
+            color = mix(color, cirrusCol, cirrusAlpha);
+
+            // 3D Volumetric Cloud Lighting Palette
+            vec3 sunlitCol     = cloudColor * (1.05 + pow(sunDot, 4.0) * 0.14);
+            vec3 midShadowCol  = mix(cloudShadow, cloudColor, 0.40);
+            vec3 deepShadowCol = mix(cloudShadow * 0.64, topColor, 0.22);
+            vec3 skyBounceCol  = mix(bottomColor, cloudShadow, 0.42);
+
+            // Aerial perspective: distant horizon clouds softly blend into atmospheric haze
+            float distanceHaze = smoothstep(-0.08, 0.52, skyEl);
+            float aerialFade = clamp(1.0 - distanceHaze * 0.26, 0.0, 1.0);
+
+            // 4. Distant Cumulus Echelon (smaller, slower, deeper in the horizon haze)
+            vec4 farCloud = shadeCumulusDeck(
+              farUV, lightDir2D, tSky * 0.62 + 310.0, 0.565,
+              mix(sunlitCol, horizonMist, 0.18),
+              mix(midShadowCol, horizonMist, 0.28),
+              mix(deepShadowCol, horizonMist, 0.34),
+              skyBounceCol,
+              sunDot
+            );
+            farCloud.rgb = mix(farCloud.rgb, sky, 0.16 + distanceHaze * 0.28);
+            color = mix(color, farCloud.rgb, farCloud.a * 0.74 * aerialFade);
+
+            // 5. Main Foreground Cumulus Echelon (2-slice 3D volumetric towers with dark underside pedestals)
+            vec4 mainCloud = shadeCumulusDeck(
+              cloudUV, lightDir2D, tSky * 1.15, 0.535,
+              sunlitCol, midShadowCol, deepShadowCol, skyBounceCol,
+              sunDot
+            );
+            mainCloud.rgb = mix(mainCloud.rgb, sky, distanceHaze * 0.16);
+            color = mix(color, mainCloud.rgb, mainCloud.a * aerialFade);
+
+            gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+          }
+        `
+      });
+
+      // renderOrder = 999 renders skySphere AFTER all opaque table/board/piece meshes (renderOrder = 0),
+      // so the GPU hardware Early-Z depth test automatically skips running the sky shader behind the 3D table!
+      const skySphere = new THREE.Mesh(new THREE.SphereGeometry(220, 36, 36), skyMat);
+      skySphere.renderOrder = 999;
+      scene.add(skySphere);
 
       // --- Shared Ultra-Detailed PBR Materials ---
       const walnutPBR = createWalnutWoodPBR(false, maxAnisotropy);
@@ -1954,6 +3109,10 @@
       let watchSecondHand = null;
       let watchMinuteHand = null;
       let watchHourHand = null;
+      let clockSecondHand = null;
+      let clockMinuteHand = null;
+      let clockHourHand = null;
+      let clockPendulumPivot = null;
 
       function applyPlanarTableUVs(cylinderGeo, scale = 0.11) {
         // Replace Three.js default polar fan UVs on the cylinder top/bottom caps with planar (X, Z) wood plank UVs
@@ -2107,9 +3266,10 @@
           createGrooveSegment(nodePositions[b], nodePositions[c], diagonalGroovesGroup);
         });
 
-        // 6. Detailed Tabletop Props (Candle in Brass Holder & Vintage Pocket Watch)
-        buildCandleProp(new THREE.Vector3(-3.85, 0.0, -3.55));
-        buildPocketWatchProp(new THREE.Vector3(3.85, 0.0, -3.35));
+        // 6. Detailed Tabletop Props (Candle in Brass Holder, Carved Mantel Pendulum Clock & Vintage Pocket Stopwatch)
+        buildCandleProp(new THREE.Vector3(-3.45, 0.0, -3.20));
+        buildMantelClockProp(new THREE.Vector3(3.65, 0.0, -2.65));
+        buildPocketWatchProp(new THREE.Vector3(3.95, 0.0, -1.35));
       }
 
       function buildCandleProp(pos) {
@@ -2130,7 +3290,7 @@
         ];
         const holderGeo = new THREE.LatheGeometry(basePoints, 40);
         const holder = new THREE.Mesh(holderGeo, brassMat);
-        holder.castShadow = true;
+        holder.castShadow = false;
         holder.receiveShadow = true;
         candleGroup.add(holder);
 
@@ -2138,7 +3298,7 @@
         const handleGeo = new THREE.TorusGeometry(0.22, 0.035, 14, 28);
         const handle = new THREE.Mesh(handleGeo, brassMat);
         handle.position.set(0.68, 0.22, 0);
-        handle.castShadow = true;
+        handle.castShadow = false;
         candleGroup.add(handle);
 
         // Translucent Paraffin / Beeswax candle with subsurface top glow & bump relief
@@ -2156,6 +3316,7 @@
         });
 
         // Lathed paraffin candle body with a realistic melted concave wax pool at the top rim
+        // Note: castShadow is false on wax so candleLight right above the wick never projects a 5.3x magnified jumping shadow circle around the saucer!
         const waxProfile = [
           new THREE.Vector2(0.0, 0.56),
           new THREE.Vector2(0.215, 0.56),
@@ -2170,7 +3331,7 @@
         ];
         const waxGeo = new THREE.LatheGeometry(waxProfile, 40);
         const wax = new THREE.Mesh(waxGeo, waxMat);
-        wax.castShadow = true;
+        wax.castShadow = false;
         wax.receiveShadow = true;
         candleGroup.add(wax);
 
@@ -2397,6 +3558,372 @@
         worldGroup.add(watchGroup);
       }
 
+      // Helper: BoxGeometry with uniform world-scaled UVs so walnut wood grain never stretches or mismatches across faces
+      // Note: in createWalnutWoodPBR, longitudinal wood fibers run along V (Y) and growth rings across U (X)
+      function createClockWoodBoxGeo(w, h, d, verticalGrain = true) {
+        const geo = new THREE.BoxGeometry(w, h, d);
+        const pos = geo.attributes.position;
+        const norm = geo.attributes.normal;
+        const uv = geo.attributes.uv;
+        const scale = 0.75;
+        for (let i = 0; i < pos.count; i++) {
+          const vx = pos.getX(i);
+          const vy = pos.getY(i);
+          const vz = pos.getZ(i);
+          const nx = Math.abs(norm.getX(i));
+          const ny = Math.abs(norm.getY(i));
+          let u = 0, v = 0;
+          if (ny > 0.5) {
+            u = vz * scale + 0.5;
+            v = vx * scale + 0.5;
+          } else if (nx > 0.5) {
+            u = (verticalGrain ? vz : vy) * scale + 0.5;
+            v = (verticalGrain ? vy : vz) * scale + 0.5;
+          } else {
+            u = (verticalGrain ? vx : vy) * scale + 0.5;
+            v = (verticalGrain ? vy : vx) * scale + 0.5;
+          }
+          uv.setXY(i, u, v);
+        }
+        uv.needsUpdate = true;
+        return geo;
+      }
+
+      // Carved Wooden Mantel Tower Clock with Golden Pediment & Swinging Pendulum Niche (Zero Overlapping Faces / Zero Z-fighting)
+      function buildMantelClockProp(pos) {
+        const clockGroup = new THREE.Group();
+        clockGroup.position.copy(pos);
+        clockGroup.rotation.y = -0.54;
+
+        // 1. Four Turned Brass Bun Feet (y = 0.00 .. 0.06)
+        const footOffsets = [
+          [-0.36, -0.20], [0.36, -0.20],
+          [-0.36, 0.20], [0.36, 0.20]
+        ];
+        footOffsets.forEach(([fx, fz]) => {
+          const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.036, 0.06, 20), brassMat);
+          foot.position.set(fx, 0.03, fz);
+          foot.castShadow = true;
+          foot.receiveShadow = true;
+          clockGroup.add(foot);
+        });
+
+        // 2. Strictly Stacked Non-Overlapping Stepped Plinth Base (y = 0.06 .. 0.22)
+        // Tier A: Lower Plinth (y = 0.06 .. 0.14, height = 0.08)
+        const lowerPlinth = new THREE.Mesh(createClockWoodBoxGeo(0.88, 0.08, 0.54, false), frameWoodMat);
+        lowerPlinth.position.set(0, 0.10, 0);
+        lowerPlinth.castShadow = true;
+        lowerPlinth.receiveShadow = true;
+        clockGroup.add(lowerPlinth);
+
+        // Tier B: Brass Plinth Molding (y = 0.14 .. 0.165, height = 0.025)
+        const baseTrim = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.025, 0.48), brassMat);
+        baseTrim.position.set(0, 0.1525, 0);
+        baseTrim.castShadow = true;
+        clockGroup.add(baseTrim);
+
+        // Tier C: Upper Plinth Step (y = 0.165 .. 0.22, height = 0.055)
+        const upperPlinth = new THREE.Mesh(createClockWoodBoxGeo(0.76, 0.055, 0.44, false), tableWoodMat);
+        upperPlinth.position.set(0, 0.1925, 0);
+        upperPlinth.castShadow = true;
+        upperPlinth.receiveShadow = true;
+        clockGroup.add(upperPlinth);
+
+        // 3. Lower Pendulum Niche Section (y = 0.22 .. 0.86, height = 0.64)
+        // Solid Back Wall (x = -0.34..0.34, y = 0.22..0.86, z = -0.18..-0.088)
+        const nicheBackWall = new THREE.Mesh(createClockWoodBoxGeo(0.68, 0.64, 0.092, true), frameWoodMat);
+        nicheBackWall.position.set(0, 0.54, -0.134);
+        nicheBackWall.castShadow = true;
+        nicheBackWall.receiveShadow = true;
+        clockGroup.add(nicheBackWall);
+
+        // Unified Full-Depth Carved Walnut Arched Body (x = -0.34..0.34, y = 0.22..0.86, z = -0.088..0.18)
+        // Extruded across the full depth of the niche so the arched tunnel is 100% solid with zero hollow gaps from any angle!
+        const facadeShape = new THREE.Shape();
+        facadeShape.moveTo(-0.34, 0.22);
+        facadeShape.lineTo(0.34, 0.22);
+        facadeShape.lineTo(0.34, 0.86);
+        facadeShape.lineTo(-0.34, 0.86);
+        facadeShape.closePath();
+
+        const archHole = new THREE.Path();
+        archHole.moveTo(-0.188, 0.232);
+        archHole.lineTo(-0.188, 0.655);
+        archHole.absarc(0.0, 0.655, 0.188, Math.PI, 0.0, true);
+        archHole.lineTo(0.188, 0.232);
+        archHole.closePath();
+        facadeShape.holes.push(archHole);
+
+        const facadeGeo = new THREE.ExtrudeGeometry(facadeShape, { depth: 0.268, bevelEnabled: false });
+        const fPos = facadeGeo.attributes.position;
+        const fNorm = facadeGeo.attributes.normal;
+        const fUV = facadeGeo.attributes.uv;
+        for (let i = 0; i < fPos.count; i++) {
+          const vx = fPos.getX(i);
+          const vy = fPos.getY(i);
+          const vz = fPos.getZ(i);
+          const nz = Math.abs(fNorm.getZ(i));
+          if (nz > 0.5) {
+            fUV.setXY(i, vx * 0.75 + 0.5, vy * 0.75 + 0.5);
+          } else {
+            fUV.setXY(i, vz * 0.75 + 0.5, vy * 0.75 + 0.5);
+          }
+        }
+        fUV.needsUpdate = true;
+
+        const archFacade = new THREE.Mesh(facadeGeo, frameWoodMat);
+        archFacade.position.set(0, 0, -0.088);
+        archFacade.castShadow = true;
+        archFacade.receiveShadow = true;
+        clockGroup.add(archFacade);
+
+        // Crimson-velvet inner niche backplate & floor cushion inside the arched tunnel
+        const nicheVelvet = new THREE.Mesh(new THREE.BoxGeometry(0.374, 0.615, 0.014), velvetTrayMat);
+        nicheVelvet.position.set(0, 0.54, -0.080);
+        nicheVelvet.receiveShadow = true;
+        clockGroup.add(nicheVelvet);
+
+        const nicheFloorVelvet = new THREE.Mesh(new THREE.BoxGeometry(0.374, 0.012, 0.252), velvetTrayMat);
+        nicheFloorVelvet.position.set(0, 0.234, 0.044);
+        nicheFloorVelvet.receiveShadow = true;
+        clockGroup.add(nicheFloorVelvet);
+
+        // Connected Brass Molding Frame around the Arched Niche Opening
+        [-0.188, 0.188].forEach((jx) => {
+          const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.425, 0.018), brassMat);
+          jamb.position.set(jx, 0.444, 0.182);
+          jamb.castShadow = true;
+          clockGroup.add(jamb);
+        });
+
+        const nicheSill = new THREE.Mesh(new THREE.BoxGeometry(0.392, 0.016, 0.020), brassMat);
+        nicheSill.position.set(0, 0.232, 0.182);
+        clockGroup.add(nicheSill);
+
+        // Brass semicircular arch flush against the carved walnut arch cutout
+        const nicheArch = new THREE.Mesh(new THREE.TorusGeometry(0.188, 0.013, 14, 40, Math.PI), brassMat);
+        nicheArch.position.set(0, 0.655, 0.182);
+        nicheArch.castShadow = true;
+        clockGroup.add(nicheArch);
+
+        // 4. Swinging Golden Pendulum Assembly inside the Niche (anchored at top pivot y = 0.85, z = 0.03)
+        clockPendulumPivot = new THREE.Group();
+        clockPendulumPivot.position.set(0, 0.85, 0.03);
+
+        const rodMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.43, 12), brassMat);
+        rodMesh.position.set(0, -0.215, 0);
+        rodMesh.castShadow = true;
+        clockPendulumPivot.add(rodMesh);
+
+        const bobDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.112, 0.112, 0.032, 32), brassMat);
+        bobDisc.rotation.x = Math.PI / 2;
+        bobDisc.position.set(0, -0.43, 0);
+        bobDisc.castShadow = true;
+        bobDisc.receiveShadow = true;
+        clockPendulumPivot.add(bobDisc);
+
+        const bobCenterBoss = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.042, 20), agedBronzeMat);
+        bobCenterBoss.rotation.x = Math.PI / 2;
+        bobCenterBoss.position.set(0, -0.43, 0);
+        clockPendulumPivot.add(bobCenterBoss);
+
+        clockGroup.add(clockPendulumPivot);
+
+        // 5. Middle Brass Cornice Belt (y = 0.86 .. 0.895, height = 0.035)
+        const midBelt = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.035, 0.42), brassMat);
+        midBelt.position.set(0, 0.8775, 0);
+        midBelt.castShadow = true;
+        clockGroup.add(midBelt);
+
+        // 6. Upper Walnut Clock Dial Cabinet (y = 0.895 .. 1.475, height = 0.58)
+        const upperCabinet = new THREE.Mesh(createClockWoodBoxGeo(0.68, 0.58, 0.36, true), frameWoodMat);
+        upperCabinet.position.set(0, 1.185, 0);
+        upperCabinet.castShadow = true;
+        upperCabinet.receiveShadow = true;
+        clockGroup.add(upperCabinet);
+
+        // Four Turned Brass Corner Columns (positioned at x = +-0.355, z = +-0.195 cleanly framing the wooden corners)
+        const colOffsets = [
+          [-0.355, -0.195], [0.355, -0.195],
+          [-0.355, 0.195], [0.355, 0.195]
+        ];
+        colOffsets.forEach(([cx, cz]) => {
+          const colShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.032, 1.255, 18), brassMat);
+          colShaft.position.set(cx, 0.8475, cz);
+          colShaft.castShadow = true;
+          colShaft.receiveShadow = true;
+          clockGroup.add(colShaft);
+
+          const colBase = new THREE.Mesh(new THREE.TorusGeometry(0.040, 0.013, 10, 20), agedBronzeMat);
+          colBase.rotation.x = Math.PI / 2;
+          colBase.position.set(cx, 0.232, cz);
+          clockGroup.add(colBase);
+
+          const colMidRing = new THREE.Mesh(new THREE.TorusGeometry(0.039, 0.011, 10, 20), agedBronzeMat);
+          colMidRing.rotation.x = Math.PI / 2;
+          colMidRing.position.set(cx, 0.8775, cz);
+          clockGroup.add(colMidRing);
+
+          const colCap = new THREE.Mesh(new THREE.TorusGeometry(0.040, 0.013, 10, 20), agedBronzeMat);
+          colCap.rotation.x = Math.PI / 2;
+          colCap.position.set(cx, 1.462, cz);
+          clockGroup.add(colCap);
+        });
+
+        // 7. Vertical Grand Feu Enamel Dial & 3D Hands (y = 1.185, z = 0.18..0.21)
+        const dialCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.242, 0.248, 0.022, 48), brassMat);
+        dialCollar.rotation.x = Math.PI / 2;
+        dialCollar.position.set(0, 1.185, 0.188);
+        dialCollar.castShadow = true;
+        clockGroup.add(dialCollar);
+
+        const dialBezel = new THREE.Mesh(new THREE.TorusGeometry(0.234, 0.020, 16, 48), brassMat);
+        dialBezel.position.set(0, 1.185, 0.200);
+        dialBezel.castShadow = true;
+        clockGroup.add(dialBezel);
+
+        // Flat upright CircleGeometry so the Roman numeral dial texture is 100% upright (XII at top) with zero edge distortion
+        const clockDialTex = createWatchDialTexture();
+        const clockFaceMat = new THREE.MeshStandardMaterial({
+          map: clockDialTex,
+          roughness: 0.22,
+          metalness: 0.04
+        });
+        const clockFace = new THREE.Mesh(new THREE.CircleGeometry(0.226, 48), clockFaceMat);
+        clockFace.position.set(0, 1.185, 0.201);
+        clockGroup.add(clockFace);
+
+        const clockHandMat = new THREE.MeshBasicMaterial({ color: 0x18120e });
+        const clockSecMat = new THREE.MeshBasicMaterial({ color: 0xa82424 });
+
+        // Hour hand (rotates around Z axis on vertical dial; points toward +Y = 12 o'clock at 0 rad)
+        clockHourHand = new THREE.Group();
+        clockHourHand.position.set(0, 1.185, 0.206);
+        const cHourBlade = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.125, 0.006), clockHandMat);
+        cHourBlade.position.set(0, 0.046, 0);
+        clockHourHand.add(cHourBlade);
+        clockGroup.add(clockHourHand);
+
+        // Minute hand (tracks elapsed match minutes)
+        clockMinuteHand = new THREE.Group();
+        clockMinuteHand.position.set(0, 1.185, 0.210);
+        const cMinBlade = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.175, 0.006), clockHandMat);
+        cMinBlade.position.set(0, 0.070, 0);
+        clockMinuteHand.add(cMinBlade);
+        clockGroup.add(clockMinuteHand);
+
+        // Second hand (tracks elapsed match seconds in sync with the swinging pendulum)
+        clockSecondHand = new THREE.Group();
+        clockSecondHand.position.set(0, 1.185, 0.214);
+        const cSecBlade = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.205, 0.006), clockSecMat);
+        cSecBlade.position.set(0, 0.074, 0);
+        clockSecondHand.add(cSecBlade);
+        clockGroup.add(clockSecondHand);
+
+        // Central brass cap pin on vertical dial
+        const cPin = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.016, 16), brassMat);
+        cPin.rotation.x = Math.PI / 2;
+        cPin.position.set(0, 1.185, 0.216);
+        clockGroup.add(cPin);
+
+        // 8. Upper Cornice & True Triangular Pediment (y = 1.475 .. 1.76, ZERO box interpenetration!)
+        const upperCorniceBrass = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.035, 0.46), brassMat);
+        upperCorniceBrass.position.set(0, 1.4925, 0);
+        upperCorniceBrass.castShadow = true;
+        upperCorniceBrass.receiveShadow = true;
+        clockGroup.add(upperCorniceBrass);
+
+        const upperCorniceWood = new THREE.Mesh(createClockWoodBoxGeo(0.76, 0.035, 0.42, false), frameWoodMat);
+        upperCorniceWood.position.set(0, 1.5275, 0);
+        upperCorniceWood.castShadow = true;
+        upperCorniceWood.receiveShadow = true;
+        clockGroup.add(upperCorniceWood);
+
+        // Exact triangular walnut tympanum (ExtrudeGeometry) so no corners ever poke through the sloped roof!
+        const tympShape = new THREE.Shape();
+        tympShape.moveTo(-0.31, 0.0);
+        tympShape.lineTo(0.0, 0.165);
+        tympShape.lineTo(0.31, 0.0);
+        tympShape.closePath();
+
+        const tympGeo = new THREE.ExtrudeGeometry(tympShape, { depth: 0.34, bevelEnabled: false });
+        // Normalize UVs on the triangular tympanum for crisp horizontal wood grain
+        const tPos = tympGeo.attributes.position;
+        const tUV = tympGeo.attributes.uv;
+        for (let i = 0; i < tPos.count; i++) {
+          tUV.setXY(i, tPos.getY(i) * 0.75 + 0.5, tPos.getX(i) * 0.75 + 0.5);
+        }
+        tUV.needsUpdate = true;
+
+        const tympanum = new THREE.Mesh(tympGeo, tableWoodMat);
+        tympanum.position.set(0, 1.545, -0.17);
+        tympanum.castShadow = true;
+        tympanum.receiveShadow = true;
+        clockGroup.add(tympanum);
+
+        // Classical pediment roof cap with flat horizontal acroterion shoulders (x = +-0.31..+-0.39) & flat apex platform
+        const roofShape = new THREE.Shape();
+        roofShape.moveTo(-0.39, 0.0);
+        roofShape.lineTo(-0.39, 0.036);
+        roofShape.lineTo(-0.30, 0.036);
+        roofShape.lineTo(-0.042, 0.195);
+        roofShape.lineTo(0.042, 0.195);
+        roofShape.lineTo(0.30, 0.036);
+        roofShape.lineTo(0.39, 0.036);
+        roofShape.lineTo(0.39, 0.0);
+        roofShape.lineTo(0.30, 0.0);
+        roofShape.lineTo(0.0, 0.165);
+        roofShape.lineTo(-0.30, 0.0);
+        roofShape.closePath();
+
+        const roofGeo = new THREE.ExtrudeGeometry(roofShape, { depth: 0.40, bevelEnabled: false });
+        const rPos = roofGeo.attributes.position;
+        const rUV = roofGeo.attributes.uv;
+        for (let i = 0; i < rPos.count; i++) {
+          rUV.setXY(i, rPos.getX(i) * 0.85 + 0.5, rPos.getY(i) * 0.85 + 0.5);
+        }
+        rUV.needsUpdate = true;
+
+        const pedimentRoof = new THREE.Mesh(roofGeo, brassMat);
+        pedimentRoof.position.set(0, 1.545, -0.20);
+        pedimentRoof.castShadow = true;
+        pedimentRoof.receiveShadow = true;
+        clockGroup.add(pedimentRoof);
+
+        // Golden relief crest medallion on front of the triangular tympanum
+        const pedimentCrest = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.046, 0.018, 24), brassMat);
+        pedimentCrest.rotation.x = Math.PI / 2;
+        pedimentCrest.position.set(0, 1.602, 0.174);
+        pedimentCrest.castShadow = true;
+        clockGroup.add(pedimentCrest);
+
+        // Central & side spire finials sitting flush on the flat horizontal apex and acroterion shoulders
+        const finialCoords = [
+          [0, 1.740, 0, 1.10],
+          [-0.345, 1.581, 0.0, 0.82],
+          [0.345, 1.581, 0.0, 0.82]
+        ];
+        finialCoords.forEach(([fx, fy, fz, fScale]) => {
+          const fGroup = new THREE.Group();
+          fGroup.position.set(fx, fy, fz);
+          fGroup.scale.setScalar(fScale);
+          const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.040, 0.022, 16), agedBronzeMat);
+          plinth.position.y = 0.011;
+          fGroup.add(plinth);
+          const orb = new THREE.Mesh(new THREE.SphereGeometry(0.040, 16, 14), brassMat);
+          orb.position.y = 0.045;
+          orb.castShadow = true;
+          fGroup.add(orb);
+          const spire = new THREE.Mesh(new THREE.ConeGeometry(0.026, 0.11, 16), brassMat);
+          spire.position.y = 0.115;
+          spire.castShadow = true;
+          fGroup.add(spire);
+          clockGroup.add(fGroup);
+        });
+
+        worldGroup.add(clockGroup);
+      }
+
       // =========================================================================
       // 6. BOARD SOCKETS (ЛУНКИ), INTERACTION RINGS & 3D LATHED PIECES
       // =========================================================================
@@ -2613,8 +4140,8 @@
 
       function adjustCameraForAspect() {
         const aspect = window.innerWidth / Math.max(1, window.innerHeight);
-        // On narrow portrait phones, pull camera back slightly so the entire board + trays fit with breathing room
-        const baseRadius = aspect < 0.75 ? 10.6 : aspect < 1.0 ? 9.4 : 8.2;
+        // On narrow portrait phones, pull camera back so the entire board + both side trays (all 6 pieces) + pocket watch fit with breathing room
+        const baseRadius = aspect < 0.62 ? 12.4 : aspect < 0.80 ? 11.5 : aspect < 1.0 ? 10.2 : 8.4;
         if (cameraState.presetIndex === 0) {
           cameraState.targetRadius = baseRadius;
         } else if (cameraState.presetIndex === 1) {
@@ -2656,7 +4183,7 @@
       function syncPiecesWithState() {
         // Clear selection halos
         pieces3D.forEach(p => {
-          const isSelected = (gameState.selectedNode !== null && p.userData.nodeIndex === gameState.selectedNode);
+          const isSelected = (gameState.selectedNode !== null && p.userData.nodeIndex === gameState.selectedNode) || Boolean(p.userData.isBeingDragged);
           p.userData.haloMat.opacity = isSelected ? 0.95 : 0.0;
           p.userData.hoverOffset = isSelected ? 0.26 : 0.0;
         });
@@ -2682,7 +4209,7 @@
           }
 
           if (phase === 'placement' && gameState.board[idx] === 0) {
-            ring.material.opacity = 0.25;
+            ring.material.opacity = 0.28;
           } else if (phase === 'movement' && gameState.selectedNode !== null) {
             const neighbors = getNeighbors(gameState.selectedNode);
             if (neighbors.includes(idx) && gameState.board[idx] === 0) {
@@ -2700,28 +4227,31 @@
         const statusDot = document.getElementById('status-dot');
         const p1Card = document.getElementById('p1-card');
         const p2Card = document.getElementById('p2-card');
+        const p1Name = document.getElementById('p1-name');
         const p2Name = document.getElementById('p2-name');
+        const p1RoleBadge = document.getElementById('p1-role-badge');
+        const p2RoleBadge = document.getElementById('p2-role-badge');
         const modeLabel = document.getElementById('mode-label');
         const btnUndo = document.getElementById('btn-undo');
 
-        // Names & mode label
-        const p1Name = document.getElementById('p1-name');
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        const aiTitle = gameState.opponentMode === 'ai_casual' ? 'ИИ Новичок' : 'ИИ Мастер';
+
+        p1Name.textContent = 'Белые';
+        p2Name.textContent = 'Чёрные';
+
         if (gameState.opponentMode === 'online') {
-          p1Name.textContent = gameState.onlineRole === 1 ? 'Вы (Белые)' : 'Белые (Сеть)';
-          p2Name.textContent = gameState.onlineRole === 2 ? 'Вы (Чёрные)' : 'Чёрные (Сеть)';
+          if (p1RoleBadge) p1RoleBadge.textContent = gameState.onlineRole === 1 ? 'Вы' : 'Сеть';
+          if (p2RoleBadge) p2RoleBadge.textContent = gameState.onlineRole === 2 ? 'Вы' : 'Сеть';
           modeLabel.textContent = gameState.onlineConnected ? 'Онлайн ●' : 'Онлайн';
         } else if (gameState.opponentMode === 'pvp') {
-          p1Name.textContent = 'Белые';
-          p2Name.textContent = 'Чёрные';
+          if (p1RoleBadge) p1RoleBadge.textContent = 'Игрок 1';
+          if (p2RoleBadge) p2RoleBadge.textContent = 'Игрок 2';
           modeLabel.textContent = '2 Игрока';
-        } else if (gameState.opponentMode === 'ai_smart') {
-          p1Name.textContent = 'Белые';
-          p2Name.textContent = 'ИИ Мастер';
-          modeLabel.textContent = 'ИИ Мастер';
         } else {
-          p1Name.textContent = 'Белые';
-          p2Name.textContent = 'ИИ Новичок';
-          modeLabel.textContent = 'ИИ Новичок';
+          if (p1RoleBadge) p1RoleBadge.textContent = gameState.humanSide === 1 ? 'Вы' : 'ИИ';
+          if (p2RoleBadge) p2RoleBadge.textContent = gameState.humanSide === 2 ? 'Вы' : 'ИИ';
+          modeLabel.textContent = aiTitle;
         }
 
         // Scores
@@ -2743,9 +4273,17 @@
         p2Card.classList.toggle('active-turn', gameState.turn === 2 && gameState.winner === 0);
 
         // Phase & Status text
-        if (gameState.winner !== 0) {
+        if (gameState.winner === 3) {
           phaseBadge.textContent = 'Партия завершена';
-          const winName = gameState.winner === 1 ? 'Белых' : (gameState.opponentMode === 'pvp' ? 'Чёрных' : 'ИИ');
+          turnSubtext.textContent = 'Ничья по согласию';
+          statusHint.textContent = 'Троекратное повторение позиции — оба игрока согласились на ничью';
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0';
+        } else if (gameState.winner !== 0) {
+          phaseBadge.textContent = 'Партия завершена';
+          let winName = gameState.winner === 1 ? 'Белых' : 'Чёрных';
+          if (isAIMode && gameState.winner !== gameState.humanSide) {
+            winName = gameState.opponentMode === 'ai_casual' ? 'ИИ Новичка' : 'ИИ Мастера';
+          }
           turnSubtext.textContent = `Победа ${winName}!`;
           statusHint.textContent = `Три фигуры в ряд! Нажмите «Заново» для следующей партии`;
           statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0';
@@ -2753,7 +4291,9 @@
           phaseBadge.textContent = phase === 'placement' ? 'Фаза 1: Расстановка' : 'Фаза 2: Перемещение';
           const turnName = gameState.opponentMode === 'online'
             ? (gameState.turn === gameState.onlineRole ? 'Ваш ход' : 'Ход соперника...')
-            : (gameState.turn === 1 ? 'Ход белых' : (gameState.opponentMode === 'pvp' ? 'Ход чёрных' : 'Думает ИИ...'));
+            : (isAIMode
+                ? (gameState.turn === gameState.humanSide ? 'Ваш ход' : 'Думает ИИ...')
+                : (gameState.turn === 1 ? 'Ход белых' : 'Ход чёрных'));
           turnSubtext.textContent = turnName;
           statusDot.className = gameState.turn === 1
             ? 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0'
@@ -2761,18 +4301,35 @@
 
           if (phase === 'placement') {
             const left = 3 - gameState.placedCount[gameState.turn];
-            statusHint.textContent = `Поставьте фигуру на любую свободную лунку (осталось в лотке: ${left})`;
+            statusHint.textContent = `Перетащите фишку из лотка или коснитесь свободной лунки (осталось: ${left})`;
           } else {
             if (gameState.selectedNode === null) {
-              statusHint.textContent = 'Коснитесь своей фигуры на доске для выбора хода';
+              statusHint.textContent = 'Перетащите свою фигуру по линии или коснитесь её для выбора хода';
             } else {
-              statusHint.textContent = 'Коснитесь подсвеченной соседней лунки вдоль линии';
+              statusHint.textContent = 'Коснитесь подсвеченной соседней лунки или перетащите фигуру туда';
             }
           }
         }
 
-        btnUndo.disabled = gameState.history.length === 0;
+        btnUndo.disabled = gameState.history.length === 0 || gameState.isAnimating;
         syncPiecesWithState();
+      }
+
+      function saveSettings() {
+        try {
+          const payload = {
+            opponentMode: gameState.opponentMode === 'online' ? 'pvp' : gameState.opponentMode,
+            aiSideMode: gameState.aiSideMode,
+            useDiagonals: gameState.useDiagonals,
+            autoRotateCamera: gameState.autoRotateCamera,
+            ambiance: gameState.ambiance,
+            sfxEnabled: sound.enabled,
+            musicEnabled: sound.musicEnabled,
+            musicVolumeRatio: sound.musicVolumeRatio,
+            scores: gameState.scores
+          };
+          localStorage.setItem('tmm3d_settings_v2', JSON.stringify(payload));
+        } catch (e) {}
       }
 
       function saveSnapshot() {
@@ -2780,6 +4337,8 @@
           board: gameState.board.slice(),
           turn: gameState.turn,
           placedCount: { 1: gameState.placedCount[1], 2: gameState.placedCount[2] },
+          scores: { 1: gameState.scores[1], 2: gameState.scores[2] },
+          positionCounts: Object.assign({}, gameState.positionCounts),
           pieceNodes: pieces3D.map(p => p.userData.nodeIndex)
         });
       }
@@ -2792,12 +4351,14 @@
         }
       }
 
-      function executePlacement(nodeIdx, fromNetwork = false) {
+      function executePlacement(nodeIdx, fromNetwork = false, preferredPiece = null) {
         saveSnapshot();
         const player = gameState.turn;
         const slotIdx = gameState.placedCount[player];
-        const piece = pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null && p.userData.traySlot === slotIdx)
-                   || pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null);
+        const piece = (preferredPiece && preferredPiece.userData.player === player && preferredPiece.userData.nodeIndex === null)
+                   ? preferredPiece
+                   : (pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null && p.userData.traySlot === slotIdx)
+                      || pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null));
 
         gameState.board[nodeIdx] = player;
         gameState.placedCount[player]++;
@@ -2840,12 +4401,159 @@
         finalizeTurn();
       }
 
+      function triggerAITurnIfNeeded() {
+        if (gameState.aiTimerId) {
+          clearTimeout(gameState.aiTimerId);
+          gameState.aiTimerId = null;
+        }
+        if (gameState.drawOfferActive) return;
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        const aiSide = gameState.humanSide === 1 ? 2 : 1;
+        if (isAIMode && gameState.turn === aiSide && gameState.winner === 0) {
+          gameState.isAnimating = true;
+          updateHUD();
+          gameState.aiTimerId = setTimeout(() => {
+            gameState.aiTimerId = null;
+            gameState.isAnimating = false;
+            if (gameState.turn !== aiSide || gameState.winner !== 0 || gameState.drawOfferActive) {
+              updateHUD();
+              return;
+            }
+            const aiMove = computeBestMove(aiSide, 6, false);
+            if (!aiMove) {
+              updateHUD();
+              return;
+            }
+            if (aiMove.type === 'place') {
+              executePlacement(aiMove.to);
+            } else {
+              executeMovement(aiMove.from, aiMove.to);
+            }
+          }, 480);
+        }
+      }
+
+      const clock = new THREE.Clock();
+
+      function formatClockMMSS(totalSec) {
+        const s = Math.max(0, Math.floor(totalSec));
+        const mm = String(Math.floor(s / 60)).padStart(2, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        return `${mm}:${ss}`;
+      }
+
+      function openDrawOfferModal(posKey) {
+        gameState.drawOfferActive = true;
+        gameState.activePosKey = posKey || '';
+        gameState.drawVotes = { 1: false, 2: false };
+
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        if (isAIMode) {
+          const aiSide = gameState.humanSide === 1 ? 2 : 1;
+          gameState.drawVotes[aiSide] = true;
+        }
+
+        updateDrawModalUI();
+        const modal = document.getElementById('draw-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        sound.playSelect();
+      }
+
+      function closeDrawOfferModal() {
+        gameState.drawOfferActive = false;
+        const modal = document.getElementById('draw-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+      }
+
+      function updateDrawModalUI() {
+        const st1 = document.getElementById('draw-status-p1');
+        const st2 = document.getElementById('draw-status-p2');
+        const pvpBox = document.getElementById('draw-pvp-actions');
+        const singleBox = document.getElementById('draw-single-actions');
+        const btnP1 = document.getElementById('btn-draw-agree-p1');
+        const btnP2 = document.getElementById('btn-draw-agree-p2');
+        const btnSingle = document.getElementById('btn-draw-agree-single');
+
+        st1.textContent = gameState.drawVotes[1] ? 'Белые: Согласны ✓' : 'Белые: Ожидание...';
+        st2.textContent = gameState.drawVotes[2] ? 'Чёрные: Согласны ✓' : 'Чёрные: Ожидание...';
+
+        st1.className = gameState.drawVotes[1]
+          ? 'flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[11px] font-bold text-emerald-200'
+          : 'flex-1 py-1.5 px-2.5 rounded-xl bg-amber-500/10 border border-amber-400/25 text-[11px] font-semibold text-amber-200/80';
+        st2.className = gameState.drawVotes[2]
+          ? 'flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-[11px] font-bold text-emerald-200'
+          : 'flex-1 py-1.5 px-2.5 rounded-xl bg-amber-500/10 border border-amber-400/25 text-[11px] font-semibold text-amber-200/80';
+
+        if (gameState.opponentMode === 'pvp') {
+          pvpBox.classList.remove('hidden');
+          pvpBox.classList.add('grid');
+          singleBox.classList.add('hidden');
+          btnP1.disabled = gameState.drawVotes[1];
+          btnP2.disabled = gameState.drawVotes[2];
+          btnP1.textContent = gameState.drawVotes[1] ? 'Белые согласны ✓' : 'Белые: Согласен';
+          btnP2.textContent = gameState.drawVotes[2] ? 'Чёрные согласны ✓' : 'Чёрные: Согласен';
+        } else {
+          pvpBox.classList.add('hidden');
+          pvpBox.classList.remove('grid');
+          singleBox.classList.remove('hidden');
+          const mySide = gameState.opponentMode === 'online' ? (gameState.onlineRole || 1) : gameState.humanSide;
+          const voted = Boolean(gameState.drawVotes[mySide]);
+          btnSingle.disabled = voted;
+          btnSingle.textContent = voted ? 'Ожидание второго игрока...' : 'Согласиться на ничью';
+        }
+      }
+
+      function declareMutualDraw() {
+        closeDrawOfferModal();
+        gameState.winner = 3;
+        gameState.matchElapsedFixed = Math.max(0, clock.getElapsedTime() - gameState.matchStartTime);
+        gameState.winningLine = null;
+        gameState.selectedNode = null;
+        gameState.hintEdge = null;
+        updateHUD();
+        sound.playWinChord();
+        setTimeout(() => showVictoryModal(3, false), 350);
+      }
+
+      function submitDrawVote(player, accept, fromNetwork = false) {
+        if (!fromNetwork) {
+          sound.playSelect();
+        }
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          sendOnlinePacket({ type: 'draw_vote', role: player, accept: Boolean(accept) });
+        }
+
+        if (!accept) {
+          if (gameState.activePosKey) {
+            gameState.positionCounts[gameState.activePosKey] = 1;
+          }
+          closeDrawOfferModal();
+          updateHUD();
+          triggerAITurnIfNeeded();
+          return;
+        }
+
+        gameState.drawVotes[player] = true;
+        updateDrawModalUI();
+
+        if (gameState.drawVotes[1] && gameState.drawVotes[2]) {
+          declareMutualDraw();
+        }
+      }
+
       function finalizeTurn() {
+        const nowElapsed = clock.getElapsedTime();
         const winRes = checkWinnerOnBoard(gameState.board);
         if (winRes.winner !== 0) {
           gameState.winner = winRes.winner;
+          gameState.matchElapsedFixed = Math.max(0, nowElapsed - gameState.matchStartTime);
           gameState.winningLine = winRes.line;
           gameState.scores[winRes.winner]++;
+          saveSettings();
           updateVictoryBeam();
           updateHUD();
           sound.playWinChord();
@@ -2853,15 +4561,18 @@
           return;
         }
 
-        // Switch turn
+        // Switch turn & reset turn stopwatch for the next player
         gameState.turn = gameState.turn === 1 ? 2 : 1;
+        gameState.turnStartTime = nowElapsed;
 
         // Check if next player is completely blocked in movement phase
         const legalNext = getLegalMoves(gameState.board, gameState.placedCount, gameState.turn);
         if (legalNext.length === 0) {
           const prevPlayer = gameState.turn === 1 ? 2 : 1;
           gameState.winner = prevPlayer;
+          gameState.matchElapsedFixed = Math.max(0, nowElapsed - gameState.matchStartTime);
           gameState.scores[prevPlayer]++;
+          saveSettings();
           updateHUD();
           sound.playWinChord();
           setTimeout(() => showVictoryModal(prevPlayer, true), 550);
@@ -2873,28 +4584,25 @@
           cameraState.targetTheta = gameState.turn === 1 ? 0 : Math.PI;
         }
 
-        updateHUD();
-
-        // Trigger AI turn if playing against AI
-        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && gameState.turn === 2 && gameState.winner === 0) {
-          gameState.isAnimating = true;
-          setTimeout(() => {
-            gameState.isAnimating = false;
-            if (gameState.turn !== 2 || gameState.winner !== 0) return;
-            const aiMove = computeBestMove(2, 6);
-            if (!aiMove) return;
-            if (aiMove.type === 'place') {
-              executePlacement(aiMove.to);
-            } else {
-              executeMovement(aiMove.from, aiMove.to);
-            }
-          }, 480);
+        // Check 3-fold position repetition in Phase 2 (movement)
+        if (getPhase() === 'movement') {
+          const posKey = gameState.board.join('') + '_' + gameState.turn;
+          gameState.positionCounts[posKey] = (gameState.positionCounts[posKey] || 0) + 1;
+          if (gameState.positionCounts[posKey] >= 3) {
+            updateHUD();
+            openDrawOfferModal(posKey);
+            return;
+          }
         }
+
+        updateHUD();
+        triggerAITurnIfNeeded();
       }
 
       function handleNodeTap(nodeIdx) {
-        if (gameState.winner !== 0 || gameState.isAnimating) return;
-        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && gameState.turn === 2) return;
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return;
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        if (isAIMode && gameState.turn !== gameState.humanSide) return;
         if (gameState.opponentMode === 'online') {
           if (!gameState.onlineConnected) {
             openOnlineModal();
@@ -2932,6 +4640,11 @@
       }
 
       function undoLastMove(fromNetwork = false) {
+        if (gameState.aiTimerId) {
+          clearTimeout(gameState.aiTimerId);
+          gameState.aiTimerId = null;
+          gameState.isAnimating = false;
+        }
         if (gameState.history.length === 0 || gameState.isAnimating) return;
         sound.playSelect();
 
@@ -2939,23 +4652,32 @@
           sendOnlinePacket({ type: 'undo' });
         }
 
-        // If playing vs AI and it's Player 1's turn, pop twice so we return to Player 1's prior turn
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         let snap = gameState.history.pop();
-        if ((gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual') && snap.turn === 2 && gameState.history.length > 0) {
+        if (isAIMode && snap.turn !== gameState.humanSide && gameState.history.length > 0) {
           snap = gameState.history.pop();
         }
 
         gameState.board = snap.board.slice();
         gameState.turn = snap.turn;
         gameState.placedCount = { 1: snap.placedCount[1], 2: snap.placedCount[2] };
+        gameState.positionCounts = Object.assign({}, snap.positionCounts || {});
+        if (snap.scores) {
+          gameState.scores = { 1: snap.scores[1], 2: snap.scores[2] };
+          saveSettings();
+        }
         gameState.selectedNode = null;
         gameState.winner = 0;
         gameState.winningLine = null;
         gameState.hintEdge = null;
+        gameState.turnStartTime = clock.getElapsedTime();
+        gameState.matchElapsedFixed = null;
+        closeDrawOfferModal();
 
         pieces3D.forEach((p, idx) => {
           const nIdx = snap.pieceNodes[idx];
           p.userData.nodeIndex = nIdx;
+          p.userData.isBeingDragged = false;
           const dest = nIdx !== null
             ? nodePositions[nIdx]
             : trayPositions[p.userData.player][p.userData.traySlot];
@@ -2965,13 +4687,28 @@
         updateVictoryBeam();
         hideVictoryModal();
         updateHUD();
+        triggerAITurnIfNeeded();
       }
 
-      function restartGame(fromNetwork = false) {
+      function restartGame(fromNetwork = false, isRematchAfterWin = false) {
+        if (gameState.aiTimerId) {
+          clearTimeout(gameState.aiTimerId);
+          gameState.aiTimerId = null;
+        }
         sound.playSelect();
         if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
           sendOnlinePacket({ type: 'restart', useDiagonals: gameState.useDiagonals });
         }
+
+        if (gameState.aiSideMode === 'white') {
+          gameState.humanSide = 1;
+        } else if (gameState.aiSideMode === 'black') {
+          gameState.humanSide = 2;
+        } else if (gameState.aiSideMode === 'alternate' && isRematchAfterWin) {
+          gameState.humanSide = gameState.humanSide === 1 ? 2 : 1;
+        }
+
+        const nowSec = clock.getElapsedTime();
         gameState.board = Array(9).fill(0);
         gameState.turn = 1;
         gameState.placedCount = { 1: 0, 2: 0 };
@@ -2979,28 +4716,49 @@
         gameState.winner = 0;
         gameState.winningLine = null;
         gameState.history = [];
+        gameState.positionCounts = {};
+        gameState.drawOfferActive = false;
+        gameState.drawVotes = { 1: false, 2: false };
+        gameState.activePosKey = '';
+        gameState.matchStartTime = nowSec;
+        gameState.turnStartTime = nowSec;
+        gameState.matchElapsedFixed = null;
         gameState.hintEdge = null;
         gameState.isAnimating = false;
+        closeDrawOfferModal();
 
         pieces3D.forEach((p) => {
           p.userData.nodeIndex = null;
+          p.userData.isBeingDragged = false;
           const dest = trayPositions[p.userData.player][p.userData.traySlot];
           animatePieceTo(p, dest);
         });
 
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         if (cameraState.presetIndex === 0) {
-          cameraState.targetTheta = (gameState.opponentMode === 'online' && gameState.onlineRole === 2) ? Math.PI : 0;
+          if (gameState.opponentMode === 'online' && gameState.onlineRole === 2) {
+            cameraState.targetTheta = Math.PI;
+          } else if (isAIMode && gameState.humanSide === 2) {
+            cameraState.targetTheta = Math.PI;
+          } else {
+            cameraState.targetTheta = 0;
+          }
         }
 
         updateVictoryBeam();
         hideVictoryModal();
         updateHUD();
+        triggerAITurnIfNeeded();
       }
 
       function showHintMove() {
-        if (gameState.winner !== 0 || gameState.isAnimating) return;
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return;
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        if (isAIMode && gameState.turn !== gameState.humanSide) return;
+        if (gameState.opponentMode === 'online' && (!gameState.onlineConnected || gameState.turn !== gameState.onlineRole)) return;
+
         sound.playSelect();
-        const best = computeBestMove(gameState.turn, 6);
+        const best = computeBestMove(gameState.turn, 6, true);
         if (!best) return;
         gameState.hintEdge = best;
         if (best.type === 'move') {
@@ -3010,7 +4768,7 @@
       }
 
       // =========================================================================
-      // 9. TOUCH & MOUSE INPUT (TAPS + SMOOTH ORBIT + PINCH ZOOM)
+      // 9. TOUCH & MOUSE INPUT (TAPS + 3D PIECE DRAG & DROP + ORBIT + PINCH ZOOM)
       // =========================================================================
       const raycaster = new THREE.Raycaster();
       const pointerNDC = new THREE.Vector2();
@@ -3023,6 +4781,90 @@
       let lastY = 0;
       let pinchStartDist = 0;
       let pinchStartRadius = 8.8;
+      let potentialDragPiece = null;
+      let draggedPiece = null;
+      let dragHoverSocket = null;
+
+      function isHumanTurnAllowed() {
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return false;
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        if (isAIMode && gameState.turn !== gameState.humanSide) return false;
+        if (gameState.opponentMode === 'online' && (!gameState.onlineConnected || gameState.turn !== gameState.onlineRole)) return false;
+        return true;
+      }
+
+      function findNearestLegalSocketForDrag(wx, wz, piece) {
+        const phase = getPhase();
+        let bestIdx = null;
+        let bestDist = 0.88;
+        for (let i = 0; i < 9; i++) {
+          if (gameState.board[i] !== 0) continue;
+          if (phase === 'movement') {
+            const fromIdx = piece.userData.nodeIndex;
+            if (fromIdx === null || !getNeighbors(fromIdx).includes(i)) continue;
+          }
+          const np = nodePositions[i];
+          const d = Math.hypot(wx - np.x, wz - np.z);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        return bestIdx;
+      }
+
+      function pickMovablePieceAtPointer(clientX, clientY) {
+        if (!isHumanTurnAllowed()) return null;
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointerNDC, camera);
+
+        const phase = getPhase();
+        const pieceHits = raycaster.intersectObjects(pieces3D, true);
+        if (pieceHits.length > 0) {
+          let obj = pieceHits[0].object;
+          while (obj && obj.parent && (!obj.userData || !obj.userData.player)) {
+            obj = obj.parent;
+          }
+          if (obj && obj.userData && obj.userData.player === gameState.turn) {
+            if (phase === 'placement' && obj.userData.nodeIndex === null) {
+              return obj;
+            }
+            if (phase === 'movement' && obj.userData.nodeIndex !== null) {
+              return obj;
+            }
+          }
+        }
+
+        // In movement phase, also allow starting a drag directly from the socket of own piece
+        if (phase === 'movement') {
+          const sockHits = raycaster.intersectObjects(socketMeshes, false);
+          if (sockHits.length > 0) {
+            const nIdx = sockHits[0].object.userData.nodeIndex;
+            if (gameState.board[nIdx] === gameState.turn) {
+              const p = pieces3D.find(item => item.userData.nodeIndex === nIdx);
+              if (p) return p;
+            }
+          }
+        }
+        return null;
+      }
+
+      function cancelActivePieceDrag() {
+        if (draggedPiece) {
+          const p = draggedPiece;
+          p.userData.isBeingDragged = false;
+          const homePos = p.userData.nodeIndex !== null
+            ? nodePositions[p.userData.nodeIndex]
+            : trayPositions[p.userData.player][p.userData.traySlot];
+          animatePieceTo(p, homePos);
+          draggedPiece = null;
+          dragHoverSocket = null;
+          syncPiecesWithState();
+        }
+        potentialDragPiece = null;
+      }
 
       function performRaycastTap(clientX, clientY) {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -3043,7 +4885,7 @@
         const pieceHits = raycaster.intersectObjects(pieces3D, true);
         if (pieceHits.length > 0) {
           let obj = pieceHits[0].object;
-          while (obj && obj.parent && !obj.userData.player) {
+          while (obj && obj.parent && (!obj.userData || !obj.userData.player)) {
             obj = obj.parent;
           }
           if (obj && obj.userData && obj.userData.nodeIndex !== null) {
@@ -3062,6 +4904,9 @@
         startY = e.clientY;
         lastX = e.clientX;
         lastY = e.clientY;
+        draggedPiece = null;
+        dragHoverSocket = null;
+        potentialDragPiece = pickMovablePieceAtPointer(e.clientX, e.clientY);
       });
 
       domElem.addEventListener('pointermove', (e) => {
@@ -3072,18 +4917,92 @@
         lastY = e.clientY;
         dragMovedDistance += Math.hypot(dx, dy);
 
+        if (potentialDragPiece && !draggedPiece && dragMovedDistance > 6) {
+          draggedPiece = potentialDragPiece;
+          draggedPiece.userData.isBeingDragged = true;
+          draggedPiece.userData.animProgress = 1.0;
+          if (getPhase() === 'movement' && draggedPiece.userData.nodeIndex !== null) {
+            gameState.selectedNode = draggedPiece.userData.nodeIndex;
+          }
+          sound.playSelect();
+          updateHUD();
+        }
+
+        if (draggedPiece) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(pointerNDC, camera);
+          const ray = raycaster.ray;
+          if (ray && ray.direction && Math.abs(ray.direction.y) > 0.0001) {
+            const planeY = BOARD_Y + 0.34;
+            const t = (planeY - ray.origin.y) / ray.direction.y;
+            if (t > 0) {
+              const wx = Math.max(-4.5, Math.min(4.5, ray.origin.x + ray.direction.x * t));
+              const wz = Math.max(-4.5, Math.min(4.5, ray.origin.z + ray.direction.z * t));
+              draggedPiece.position.set(wx, planeY, wz);
+              dragHoverSocket = findNearestLegalSocketForDrag(wx, wz, draggedPiece);
+              if (dragHoverSocket !== null) {
+                const snapPos = nodePositions[dragHoverSocket];
+                draggedPiece.position.x = wx * 0.32 + snapPos.x * 0.68;
+                draggedPiece.position.z = wz * 0.32 + snapPos.z * 0.68;
+              }
+            }
+          }
+          return;
+        }
+
         if (dragMovedDistance > 6) {
-          cameraState.targetTheta -= dx * 0.0075;
-          cameraState.targetPhi = Math.max(0.08, Math.min(1.22, cameraState.targetPhi - dy * 0.0065));
+          cameraState.targetTheta -= dx * 0.0058;
+          cameraState.targetPhi = Math.max(0.18, Math.min(1.18, cameraState.targetPhi - dy * 0.0052));
         }
       });
 
       domElem.addEventListener('pointerup', (e) => {
         if (!isDragging) return;
         isDragging = false;
+
+        if (draggedPiece) {
+          const piece = draggedPiece;
+          const targetSocket = dragHoverSocket;
+          piece.userData.isBeingDragged = false;
+          draggedPiece = null;
+          potentialDragPiece = null;
+          dragHoverSocket = null;
+
+          if (targetSocket !== null && isHumanTurnAllowed()) {
+            if (getPhase() === 'placement') {
+              executePlacement(targetSocket, false, piece);
+              return;
+            } else if (getPhase() === 'movement' && piece.userData.nodeIndex !== null) {
+              executeMovement(piece.userData.nodeIndex, targetSocket);
+              return;
+            }
+          }
+
+          const homePos = piece.userData.nodeIndex !== null
+            ? nodePositions[piece.userData.nodeIndex]
+            : trayPositions[piece.userData.player][piece.userData.traySlot];
+          animatePieceTo(piece, homePos);
+          syncPiecesWithState();
+          return;
+        }
+
+        potentialDragPiece = null;
         const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
         if (totalDist < 12 && dragMovedDistance < 15) {
           performRaycastTap(e.clientX, e.clientY);
+        }
+      });
+
+      domElem.addEventListener('pointercancel', () => {
+        isDragging = false;
+        cancelActivePieceDrag();
+      });
+      window.addEventListener('pointerup', () => {
+        if (isDragging) {
+          isDragging = false;
+          cancelActivePieceDrag();
         }
       });
 
@@ -3091,6 +5010,7 @@
       domElem.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
           isDragging = false;
+          cancelActivePieceDrag();
           const dx = e.touches[0].clientX - e.touches[1].clientX;
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           pinchStartDist = Math.hypot(dx, dy);
@@ -3104,14 +5024,14 @@
           const dy = e.touches[0].clientY - e.touches[1].clientY;
           const dist = Math.hypot(dx, dy);
           const scale = pinchStartDist / Math.max(20, dist);
-          cameraState.targetRadius = Math.max(5.5, Math.min(13.5, pinchStartRadius * scale));
+          cameraState.targetRadius = Math.max(5.5, Math.min(15.0, pinchStartRadius * scale));
         }
       }, { passive: true });
 
       // Mouse wheel zoom for desktop preview
       domElem.addEventListener('wheel', (e) => {
         e.preventDefault();
-        cameraState.targetRadius = Math.max(5.5, Math.min(13.5, cameraState.targetRadius + e.deltaY * 0.005));
+        cameraState.targetRadius = Math.max(5.5, Math.min(15.0, cameraState.targetRadius + e.deltaY * 0.005));
       }, { passive: false });
 
       // =========================================================================
@@ -3119,19 +5039,32 @@
       // =========================================================================
       function showVictoryModal(winner, byBlockade = false) {
         const modal = document.getElementById('victory-modal');
+        const subtitle = document.getElementById('victory-subtitle');
         const title = document.getElementById('victory-title');
         const desc = document.getElementById('victory-desc');
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
 
-        if (winner === 1) {
-          title.textContent = 'Победа Белых!';
+        if (winner === 3) {
+          if (subtitle) subtitle.textContent = 'Мирное соглашение';
+          title.textContent = 'Ничья по согласию!';
+          desc.textContent = 'Позиция повторилась трижды — оба игрока подтвердили почётную ничью.';
         } else {
-          title.textContent = gameState.opponentMode === 'pvp' ? 'Победа Чёрных!' : 'Победа ИИ Мастера!';
-        }
+          if (subtitle) subtitle.textContent = 'Триумф на доске';
+          if (isAIMode) {
+            if (winner === gameState.humanSide) {
+              title.textContent = winner === 1 ? 'Победа Белых (Вы)!' : 'Победа Чёрных (Вы)!';
+            } else {
+              title.textContent = gameState.opponentMode === 'ai_casual' ? 'Победа ИИ Новичка!' : 'Победа ИИ Мастера!';
+            }
+          } else {
+            title.textContent = winner === 1 ? 'Победа Белых!' : 'Победа Чёрных!';
+          }
 
-        if (byBlockade) {
-          desc.textContent = 'У соперника не осталось доступных ходов вдоль линий доски.';
-        } else {
-          desc.textContent = 'Три фигуры выстроены в безупречную мельницу на резной доске.';
+          if (byBlockade) {
+            desc.textContent = 'У соперника не осталось доступных ходов вдоль линий доски.';
+          } else {
+            desc.textContent = 'Три фигуры выстроены в безупречную мельницу на резной доске.';
+          }
         }
 
         modal.classList.remove('hidden');
@@ -3198,15 +5131,77 @@
       document.addEventListener('fullscreenchange', updateFullscreenUI);
       document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
+      function syncAudioButtonsUI() {
+        const btnSfx = document.getElementById('btn-sound');
+        const sfxOn = document.getElementById('icon-sound-on');
+        const sfxOff = document.getElementById('icon-sound-off');
+        btnSfx.classList.toggle('active-mode', sound.enabled);
+        sfxOn.classList.toggle('hidden', !sound.enabled);
+        sfxOff.classList.toggle('hidden', sound.enabled);
+
+        const btnMus = document.getElementById('btn-music');
+        const musOn = document.getElementById('icon-music-on');
+        const musOff = document.getElementById('icon-music-off');
+        btnMus.classList.toggle('active-mode', sound.musicEnabled);
+        musOn.classList.toggle('hidden', !sound.musicEnabled);
+        musOff.classList.toggle('hidden', sound.musicEnabled);
+      }
+
       document.getElementById('btn-sound').addEventListener('click', () => {
         sound.enabled = !sound.enabled;
-        const btn = document.getElementById('btn-sound');
-        const onIcon = document.getElementById('icon-sound-on');
-        const offIcon = document.getElementById('icon-sound-off');
-        btn.classList.toggle('active-mode', sound.enabled);
-        onIcon.classList.toggle('hidden', !sound.enabled);
-        offIcon.classList.toggle('hidden', sound.enabled);
+        syncAudioButtonsUI();
         if (sound.enabled) sound.playSelect();
+        saveSettings();
+      });
+
+      document.getElementById('btn-music').addEventListener('click', () => {
+        sound.toggleMusic();
+        syncAudioButtonsUI();
+        if (sound.enabled) sound.playSelect();
+        saveSettings();
+      });
+
+      const sliderMusicVol = document.getElementById('slider-music-vol');
+      const labelMusicVol = document.getElementById('music-vol-label');
+      const hudVolumeSlider = document.getElementById('hud-volume-slider');
+      const hudVolumeLabel = document.getElementById('hud-volume-label');
+
+      function syncVolumeSlidersDOM(clamped) {
+        sliderMusicVol.value = String(clamped);
+        labelMusicVol.textContent = `${clamped}%`;
+        hudVolumeSlider.value = String(clamped);
+        hudVolumeLabel.textContent = `${clamped}%`;
+        if (sliderMusicVol.style && sliderMusicVol.style.setProperty) {
+          sliderMusicVol.style.setProperty('--val', `${clamped}%`);
+        }
+        if (hudVolumeSlider.style && hudVolumeSlider.style.setProperty) {
+          hudVolumeSlider.style.setProperty('--val', `${clamped}%`);
+        }
+      }
+
+      function applyVolumePercent(pct) {
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        syncVolumeSlidersDOM(clamped);
+        sound.setMusicVolume(clamped / 100);
+        if (clamped > 0 && !sound.musicEnabled) {
+          sound.toggleMusic(true);
+          syncAudioButtonsUI();
+        }
+        saveSettings();
+      }
+
+      sliderMusicVol.addEventListener('input', (e) => {
+        applyVolumePercent(Number(e.target.value));
+      });
+      hudVolumeSlider.addEventListener('input', (e) => {
+        applyVolumePercent(Number(e.target.value));
+      });
+
+      document.getElementById('btn-reset-score').addEventListener('click', () => {
+        sound.playSelect();
+        gameState.scores = { 1: 0, 2: 0 };
+        saveSettings();
+        updateHUD();
       });
 
       const rulesModal = document.getElementById('rules-modal');
@@ -3227,7 +5222,7 @@
 
       document.getElementById('btn-undo').addEventListener('click', () => undoLastMove(false));
       document.getElementById('btn-hint').addEventListener('click', showHintMove);
-      document.getElementById('btn-restart').addEventListener('click', () => restartGame(false));
+      document.getElementById('btn-restart').addEventListener('click', () => restartGame(false, false));
 
       // --- Online Multiplayer (PeerJS WebRTC P2P Room Code System) ---
       let peerInstance = null;
@@ -3274,6 +5269,10 @@
       }
 
       function disconnectOnlineSession() {
+        if (gameState.joinTimeoutId) {
+          clearTimeout(gameState.joinTimeoutId);
+          gameState.joinTimeoutId = null;
+        }
         if (onlineConn) {
           try { onlineConn.close(); } catch (e) {}
           onlineConn = null;
@@ -3299,12 +5298,16 @@
         gameState.onlineRole = role;
 
         conn.on('open', () => {
+          if (gameState.joinTimeoutId) {
+            clearTimeout(gameState.joinTimeoutId);
+            gameState.joinTimeoutId = null;
+          }
           gameState.onlineConnected = true;
           gameState.opponentMode = 'online';
           document.getElementById('select-opponent').value = 'online';
           const roleLabel = role === 1 ? 'Белые (Хост)' : 'Чёрные (Гость)';
           setOnlineStatus(`Подключено! Вы играете за: ${roleLabel}`, 'connected');
-          restartGame(true);
+          restartGame(true, false);
           if (role === 1) {
             sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals });
           }
@@ -3319,7 +5322,7 @@
             gameState.useDiagonals = Boolean(data.useDiagonals);
             document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
             diagonalGroovesGroup.visible = gameState.useDiagonals;
-            restartGame(true);
+            restartGame(true, false);
           } else if (data.type === 'place') {
             executePlacement(data.nodeIdx, true);
           } else if (data.type === 'move') {
@@ -3330,9 +5333,12 @@
               document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
               diagonalGroovesGroup.visible = gameState.useDiagonals;
             }
-            restartGame(true);
+            restartGame(true, false);
           } else if (data.type === 'undo') {
             undoLastMove(true);
+          } else if (data.type === 'draw_vote') {
+            const voter = data.role === 1 || data.role === 2 ? data.role : (gameState.onlineRole === 1 ? 2 : 1);
+            submitDrawVote(voter, Boolean(data.accept), true);
           }
         });
 
@@ -3347,8 +5353,9 @@
         });
       }
 
-      function startHostingRoom() {
-        sound.playSelect();
+      function startHostingRoom(retryCount = 0) {
+        if (typeof retryCount !== 'number') retryCount = 0;
+        if (retryCount === 0) sound.playSelect();
         if (typeof Peer === 'undefined') {
           setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
           return;
@@ -3371,10 +5378,18 @@
         });
 
         peerInstance.on('connection', (conn) => {
+          if (onlineConn && onlineConn.open) {
+            try { conn.close(); } catch (e) {}
+            return;
+          }
           bindDataConnection(conn, 1);
         });
 
         peerInstance.on('error', (err) => {
+          if (err && err.type === 'unavailable-id' && retryCount < 5) {
+            startHostingRoom(retryCount + 1);
+            return;
+          }
           setOnlineStatus('Не удалось создать комнату (' + (err.type || 'сеть') + '). Попробуйте ещё раз.', 'idle');
         });
       }
@@ -3397,6 +5412,11 @@
         peerInstance.on('open', () => {
           const conn = peerInstance.connect('tmm3d-royal-' + rawCode, { reliable: true });
           bindDataConnection(conn, 2);
+          gameState.joinTimeoutId = setTimeout(() => {
+            if (!gameState.onlineConnected) {
+              setOnlineStatus('Не удалось связаться с комнатой ' + rawCode + '. Проверьте код.', 'idle');
+            }
+          }, 10000);
         });
 
         peerInstance.on('error', () => {
@@ -3414,25 +5434,50 @@
         disconnectOnlineSession();
       });
 
+      function copyTextToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        return new Promise((resolve) => {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(ta);
+          resolve();
+        });
+      }
+
       document.getElementById('btn-copy-code').addEventListener('click', () => {
         sound.playSelect();
         const code = hostRoomCodeEl.textContent || '';
         if (!code || code === '----') return;
         const btn = document.getElementById('btn-copy-code');
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(code);
-          } else {
-            const ta = document.createElement('textarea');
-            ta.value = code;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-          }
+        copyTextToClipboard(code).then(() => {
           btn.textContent = 'Скопировано!';
-          setTimeout(() => { btn.textContent = 'Копировать'; }, 1600);
-        } catch (e) {}
+          setTimeout(() => { btn.textContent = 'Код'; }, 1600);
+        }).catch(() => {});
+      });
+
+      document.getElementById('btn-share-code').addEventListener('click', () => {
+        sound.playSelect();
+        const code = hostRoomCodeEl.textContent || '';
+        if (!code || code === '----') return;
+        const btn = document.getElementById('btn-share-code');
+        const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(code)}`;
+        if (navigator.share) {
+          navigator.share({
+            title: 'Three Men’s Morris 3D — Приглашение в партию',
+            text: `Присоединяйся к моей партии в Three Men’s Morris 3D! Код комнаты: ${code}`,
+            url: inviteUrl
+          }).catch(() => {});
+        } else {
+          copyTextToClipboard(inviteUrl).then(() => {
+            btn.textContent = 'Скопирована!';
+            setTimeout(() => { btn.textContent = 'Ссылка'; }, 1600);
+          }).catch(() => {});
+        }
       });
 
       document.getElementById('btn-victory-inspect').addEventListener('click', () => {
@@ -3440,7 +5485,22 @@
         hideVictoryModal();
       });
       document.getElementById('btn-victory-play').addEventListener('click', () => {
-        restartGame();
+        restartGame(false, true);
+      });
+
+      document.getElementById('btn-draw-agree-p1').addEventListener('click', () => {
+        submitDrawVote(1, true, false);
+      });
+      document.getElementById('btn-draw-agree-p2').addEventListener('click', () => {
+        submitDrawVote(2, true, false);
+      });
+      document.getElementById('btn-draw-agree-single').addEventListener('click', () => {
+        const mySide = gameState.opponentMode === 'online' ? (gameState.onlineRole || 1) : gameState.humanSide;
+        submitDrawVote(mySide, true, false);
+      });
+      document.getElementById('btn-draw-decline').addEventListener('click', () => {
+        const mySide = gameState.opponentMode === 'online' ? (gameState.onlineRole || 1) : gameState.humanSide;
+        submitDrawVote(mySide, false, false);
       });
 
       // Quick Opponent Mode Cycle button on bottom bar
@@ -3451,67 +5511,193 @@
         const nextIdx = (modes.indexOf(gameState.opponentMode) + 1) % modes.length;
         gameState.opponentMode = modes[nextIdx];
         selectOpponent.value = gameState.opponentMode;
+        saveSettings();
         if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
           openOnlineModal();
         }
-        restartGame(false);
+        restartGame(false, false);
       });
 
       selectOpponent.addEventListener('change', (e) => {
         gameState.opponentMode = e.target.value;
+        saveSettings();
         if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
           openOnlineModal();
         }
-        restartGame(false);
+        restartGame(false, false);
+      });
+
+      const selectAiSide = document.getElementById('select-ai-side');
+      selectAiSide.addEventListener('change', (e) => {
+        gameState.aiSideMode = e.target.value;
+        saveSettings();
+        restartGame(false, false);
       });
 
       document.getElementById('select-diagonals').addEventListener('change', (e) => {
         gameState.useDiagonals = e.target.value === 'with_diag';
         diagonalGroovesGroup.visible = gameState.useDiagonals;
-        restartGame();
+        saveSettings();
+        restartGame(false, false);
       });
 
       document.getElementById('toggle-autorotate').addEventListener('change', (e) => {
         gameState.autoRotateCamera = e.target.checked;
+        saveSettings();
       });
 
-      document.getElementById('select-ambiance').addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === 'candle') {
-          scene.background.setHex(0x0d0907);
-          scene.fog.color.setHex(0x0d0907);
-          candleLight.intensity = 1.15;
-          mainSpot.intensity = 1.25;
-          mainSpot.color.setHex(0xfff1d6);
-        } else if (val === 'daylight') {
-          scene.background.setHex(0x1b2024);
-          scene.fog.color.setHex(0x1b2024);
-          candleLight.intensity = 0.45;
-          mainSpot.intensity = 1.65;
-          mainSpot.color.setHex(0xffffff);
+      function applyAmbiance(val) {
+        gameState.ambiance = val;
+        if (skyPresets[val]) {
+          const p = skyPresets[val];
+          skySphere.visible = true;
+          skyUniforms.topColor.value.copy(p.topColor);
+          skyUniforms.bottomColor.value.copy(p.bottomColor);
+          skyUniforms.cloudColor.value.copy(p.cloudColor);
+          skyUniforms.cloudShadow.value.copy(p.cloudShadow);
+          skyUniforms.starVisibility.value = p.starVisibility;
+
+          scene.background.copy(p.fogColor);
+          scene.fog.color.copy(p.fogColor);
+
+          if (val === 'sky_day') {
+            scene.fog.density = 0.0038;
+            baseCandleIntensity = 0.65;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.38;
+            mainSpot.color.setHex(0xfff5e4);
+            ambientLight.intensity = 0.72;
+          } else if (val === 'sky_sunset') {
+            scene.fog.density = 0.0042;
+            baseCandleIntensity = 1.15;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.32;
+            mainSpot.color.setHex(0xffcca0);
+            ambientLight.intensity = 0.62;
+          } else {
+            scene.fog.density = 0.0045;
+            baseCandleIntensity = 1.35;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.08;
+            mainSpot.color.setHex(0xcce0ff);
+            ambientLight.intensity = 0.52;
+          }
         } else {
-          scene.background.setHex(0x160f07);
-          scene.fog.color.setHex(0x160f07);
-          candleLight.intensity = 1.45;
-          mainSpot.intensity = 1.4;
-          mainSpot.color.setHex(0xffdf9e);
+          skySphere.visible = false;
+          if (val === 'candle') {
+            scene.background.setHex(0x0d0907);
+            scene.fog.color.setHex(0x0d0907);
+            scene.fog.density = 0.032;
+            baseCandleIntensity = 1.15;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.25;
+            mainSpot.color.setHex(0xfff1d6);
+            ambientLight.intensity = 0.60;
+          } else if (val === 'daylight') {
+            scene.background.setHex(0x1b2024);
+            scene.fog.color.setHex(0x1b2024);
+            scene.fog.density = 0.025;
+            baseCandleIntensity = 0.45;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.65;
+            mainSpot.color.setHex(0xffffff);
+            ambientLight.intensity = 0.75;
+          } else {
+            scene.background.setHex(0x160f07);
+            scene.fog.color.setHex(0x160f07);
+            scene.fog.density = 0.028;
+            baseCandleIntensity = 1.45;
+            candleLight.intensity = baseCandleIntensity;
+            mainSpot.intensity = 1.40;
+            mainSpot.color.setHex(0xffdf9e);
+            ambientLight.intensity = 0.65;
+          }
         }
+      }
+
+      document.getElementById('select-ambiance').addEventListener('change', (e) => {
+        applyAmbiance(e.target.value);
+        saveSettings();
       });
+
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem('tmm3d_settings_v2');
+          if (raw) {
+            const s = JSON.parse(raw);
+            if (s.opponentMode && ['pvp', 'ai_smart', 'ai_casual'].includes(s.opponentMode)) {
+              gameState.opponentMode = s.opponentMode;
+              selectOpponent.value = s.opponentMode;
+            }
+            if (s.aiSideMode && ['white', 'black', 'alternate'].includes(s.aiSideMode)) {
+              gameState.aiSideMode = s.aiSideMode;
+              selectAiSide.value = s.aiSideMode;
+              gameState.humanSide = s.aiSideMode === 'black' ? 2 : 1;
+            }
+            if (typeof s.useDiagonals === 'boolean') {
+              gameState.useDiagonals = s.useDiagonals;
+              document.getElementById('select-diagonals').value = s.useDiagonals ? 'with_diag' : 'no_diag';
+              diagonalGroovesGroup.visible = s.useDiagonals;
+            }
+            if (typeof s.autoRotateCamera === 'boolean') {
+              gameState.autoRotateCamera = s.autoRotateCamera;
+              document.getElementById('toggle-autorotate').checked = s.autoRotateCamera;
+            }
+            if (s.ambiance) {
+              document.getElementById('select-ambiance').value = s.ambiance;
+              applyAmbiance(s.ambiance);
+            } else {
+              applyAmbiance('sky_day');
+            }
+            if (typeof s.sfxEnabled === 'boolean') {
+              sound.enabled = s.sfxEnabled;
+            }
+            if (typeof s.musicEnabled === 'boolean') {
+              sound.musicEnabled = s.musicEnabled;
+            }
+            if (typeof s.musicVolumeRatio === 'number') {
+              sound.setMusicVolume(s.musicVolumeRatio);
+              const pct = Math.round(sound.musicVolumeRatio * 100);
+              syncVolumeSlidersDOM(pct);
+            }
+            if (s.scores && typeof s.scores[1] === 'number' && typeof s.scores[2] === 'number') {
+              gameState.scores = { 1: s.scores[1], 2: s.scores[2] };
+            }
+          } else {
+            applyAmbiance('sky_day');
+          }
+        } catch (e) {
+          applyAmbiance('sky_day');
+        }
+        syncAudioButtonsUI();
+      }
 
       window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / Math.max(1, window.innerHeight);
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(getUniversalPixelRatio());
         adjustCameraForAspect();
       });
 
       // =========================================================================
-      // 11. RENDER LOOP (SMOOTH PARABOLIC PIECE ARCS, CANDLE FLICKER & CAMERA)
+      // 11. RENDER LOOP (SMOOTH PARABOLIC PIECE ARCS, DYNAMIC SHADOWS, CLOCKS & SKY)
       // =========================================================================
-      const clock = new THREE.Clock();
+      const hudTimerReadoutEl = document.getElementById('hud-timer-readout');
+      let lastTimerText = '';
+      const MIN_FRAME_INTERVAL_MS = 1000 / 120.5; // strictly cap render loop at <= 120 FPS
+      let lastFrameTimeMs = 0;
 
-      function animate() {
+      function animate(nowMs) {
         requestAnimationFrame(animate);
+        if (typeof nowMs === 'number' && lastFrameTimeMs > 0) {
+          if (nowMs - lastFrameTimeMs < MIN_FRAME_INTERVAL_MS) {
+            return;
+          }
+        }
+        if (typeof nowMs === 'number') {
+          lastFrameTimeMs = nowMs;
+        }
         const dt = Math.min(clock.getDelta(), 0.1);
         const elapsed = clock.getElapsedTime();
 
@@ -3525,9 +5711,31 @@
         camera.position.z = cameraState.radius * Math.sin(cameraState.phi) * Math.cos(cameraState.theta);
         camera.lookAt(0, 0.22, 0);
 
+        // Keep sky dome centered on camera and update panoramic camera angles + wind drift time
+        skySphere.position.copy(camera.position);
+        skyUniforms.time.value = elapsed;
+        skyUniforms.uCamTheta.value = cameraState.theta;
+        skyUniforms.uCamPhi.value = cameraState.phi;
+
+        // Dynamic Sun / Moon directional shadow drift across the tabletop + subtle candle-flame micro-sway
+        const sunOrbitAngle = 0.72 + Math.sin(elapsed * 0.045) * 0.52;
+        const sunHorizDist = 8.4;
+        const sunHeight = 10.8 + Math.cos(elapsed * 0.032) * 1.25;
+        const shadowMicroX = Math.sin(elapsed * 4.8) * 0.045;
+        const shadowMicroZ = Math.cos(elapsed * 4.1) * 0.045;
+        mainSpot.position.set(
+          Math.sin(sunOrbitAngle) * sunHorizDist + shadowMicroX,
+          sunHeight,
+          Math.cos(sunOrbitAngle) * sunHorizDist + shadowMicroZ
+        );
+
         // Animate pieces along smooth parabolic arc
         pieces3D.forEach((piece) => {
           const ud = piece.userData;
+          if (ud.isBeingDragged) {
+            ud.haloMat.opacity = 0.95;
+            return;
+          }
           if (ud.animProgress < 1.0) {
             ud.animProgress = Math.min(1.0, ud.animProgress + dt * 3.1);
             // Smoothstep easing
@@ -3549,32 +5757,76 @@
           ring.scale.setScalar(ringPulse);
         });
 
-        // Natural candle flame flicker & pocket watch second hand
+        // Dynamic candle flame dance & live swaying candle shadows
         if (candleFlameMesh) {
-          const flicker = 0.92 + Math.sin(elapsed * 17.0) * 0.06 + Math.cos(elapsed * 29.0) * 0.04;
+          const swayX = Math.sin(elapsed * 4.8) * 0.055 + Math.cos(elapsed * 11.2) * 0.022;
+          const swayZ = Math.cos(elapsed * 4.1) * 0.055 + Math.sin(elapsed * 9.7) * 0.022;
+          const flicker = 0.92 + Math.sin(elapsed * 15.0) * 0.06 + Math.cos(elapsed * 27.0) * 0.04;
           candleFlameMesh.scale.set(1.0, flicker, 1.0);
-          candleLight.intensity = 1.08 + Math.sin(elapsed * 13.0) * 0.09;
+          candleFlameMesh.rotation.z = -swayX * 1.15;
+          candleFlameMesh.rotation.x = swayZ * 1.15;
+          candleLight.position.set(
+            -3.45 + swayX * 0.28,
+            2.36 + (flicker - 0.92) * 0.18,
+            -3.20 + swayZ * 0.28
+          );
+          candleLight.intensity = baseCandleIntensity * (1.0 + Math.sin(elapsed * 12.0) * 0.11 + Math.cos(elapsed * 21.0) * 0.05);
         }
+
+        // Compute Total Match Elapsed Time & Current Turn Elapsed Time
+        const matchSec = (gameState.winner !== 0 && gameState.matchElapsedFixed !== null)
+          ? gameState.matchElapsedFixed
+          : Math.max(0, elapsed - gameState.matchStartTime);
+        const turnSec = gameState.winner !== 0
+          ? 0
+          : Math.max(0, elapsed - gameState.turnStartTime);
+
+        if (hudTimerReadoutEl) {
+          const timerStr = `🕰 ${formatClockMMSS(matchSec)} · ⏱ ${formatClockMMSS(turnSec)}`;
+          if (timerStr !== lastTimerText) {
+            lastTimerText = timerStr;
+            hudTimerReadoutEl.textContent = timerStr;
+          }
+        }
+
+        // 1. Pocket Stopwatch (tracks Current Turn Time with 5Hz chronometer stepping)
         if (watchSecondHand) {
-          // Crisp silent mechanical stopwatch ticking (5 sub-steps per second with smooth damping)
-          const totalTicks = elapsed * 5.0;
+          const totalTicks = turnSec * 5.0;
           const wholeTick = Math.floor(totalTicks);
           const frac = totalTicks - wholeTick;
           const steppedTick = wholeTick + Math.pow(frac, 0.35);
-          const secAngle = -(steppedTick / 5.0) * (Math.PI / 30);
-          watchSecondHand.rotation.y = secAngle;
+          const turnSecAngle = -(steppedTick / 5.0) * (Math.PI / 30);
+          watchSecondHand.rotation.y = turnSecAngle;
           if (watchMinuteHand) {
-            watchMinuteHand.rotation.y = 0.52 + secAngle / 60.0;
+            watchMinuteHand.rotation.y = turnSecAngle / 60.0;
           }
           if (watchHourHand) {
-            watchHourHand.rotation.y = -0.82 + secAngle / 720.0;
+            watchHourHand.rotation.y = turnSecAngle / 720.0;
+          }
+        }
+
+        // 2. Carved Mantel Tower Clock with Pendulum (tracks Total Match Time)
+        if (clockPendulumPivot) {
+          // Harmonic pendulum swing (1 full left-right beat per second, casting dynamic shadow)
+          clockPendulumPivot.rotation.z = Math.sin(matchSec * Math.PI * 2.0) * 0.24;
+        }
+        if (clockSecondHand) {
+          const wholeSec = Math.floor(matchSec);
+          const secFrac = matchSec - wholeSec;
+          const steppedSec = wholeSec + Math.pow(secFrac, 0.28);
+          const matchSecAngle = -steppedSec * (Math.PI / 30);
+          clockSecondHand.rotation.z = matchSecAngle;
+          if (clockMinuteHand) {
+            clockMinuteHand.rotation.z = -(matchSec / 60.0) * (Math.PI / 30);
+          }
+          if (clockHourHand) {
+            clockHourHand.rotation.z = -(matchSec / 3600.0) * (Math.PI / 6);
           }
         }
 
         renderer.render(scene, camera);
       }
 
-      
       // --- Service Worker Registration & iOS Standalone PWA Helper ---
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
         window.addEventListener('load', () => {
@@ -3582,9 +5834,12 @@
         });
       }
 
-      // Unlock WebAudio on first iOS touch anywhere
+      // Unlock WebAudio & start background music on first iOS/desktop interaction
       const unlockAudioIOS = () => {
         sound.init();
+        if (sound.musicEnabled && !sound.isPlayingMusic) {
+          sound.startMusic();
+        }
         window.removeEventListener('touchstart', unlockAudioIOS, true);
         window.removeEventListener('touchend', unlockAudioIOS, true);
         window.removeEventListener('click', unlockAudioIOS, true);
@@ -3594,8 +5849,23 @@
       window.addEventListener('click', unlockAudioIOS, true);
 
       window.onload = () => {
-        updateHUD();
+        loadSettings();
+        restartGame(true, false);
         animate();
+
+        // Auto-open Online Room if URL has ?room=XXXX invite parameter
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const inviteRoom = params.get('room');
+          if (inviteRoom && inviteRoom.trim().length >= 4) {
+            const cleanCode = inviteRoom.trim().replace(/[^0-9A-Za-z]/g, '').slice(0, 4);
+            document.getElementById('input-join-code').value = cleanCode;
+            openOnlineModal();
+            setTimeout(() => {
+              joinExistingRoom();
+            }, 450);
+          }
+        } catch (e) {}
       };
     })();
   </script>

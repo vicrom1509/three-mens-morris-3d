@@ -1,0 +1,3694 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Subarashiki Morris — 3D Aozora Sanctuary</title>
+
+    <!-- Карта импортов Three.js (быстрый и стабильный jsDelivr CDN) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- GSAP для кинематографических анимаций и PeerJS для прямого P2P онлайна по ID -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <!-- Шрифты: классическая антиква Cormorant Garamond и чистый геометрический гротеск Montserrat -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600&display=swap');
+
+        :root {
+            --glass-bg: rgba(14, 32, 62, 0.52);
+            --glass-bg-strong: rgba(10, 24, 48, 0.76);
+            --glass-border: rgba(255, 255, 255, 0.32);
+            --glass-highlight: rgba(255, 255, 255, 0.65);
+            --gold-accent: #ffdf73;
+            --gold-glow: rgba(255, 215, 100, 0.55);
+            --sky-accent: #88ccff;
+            --p1-light: #fdf5e6;
+            --p2-dark: #ffb380;
+            --danger: #ff7b7b;
+            --success: #7bffb5;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #082454;
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* --- 3D CANVAS --- */
+        #game-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            outline: none;
+            display: block;
+        }
+
+        /* --- КИНЕМАТОГРАФИЧНАЯ ВИНЬЕТКА ПОВЕРХ СЦЕНЫ --- */
+        #cinematic-vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 58%, rgba(4, 14, 34, 0.42) 100%);
+            transition: opacity 0.8s ease;
+        }
+
+        /* --- СЛОЙ ИНТЕРФЕЙСА --- */
+        #ui-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* --- БАЗОВЫЕ СТЕКЛЯННЫЕ ПАНЕЛИ --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(22px) saturate(140%);
+            -webkit-backdrop-filter: blur(22px) saturate(140%);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            border-radius: 18px;
+            box-shadow: 0 24px 54px rgba(0, 12, 32, 0.48), inset 0 0 24px rgba(255, 255, 255, 0.12);
+            pointer-events: auto;
+            transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                        visibility 0.35s;
+        }
+
+        /* Полное отключение кликов у скрытых элементов и их потомков */
+        .hidden,
+        .hidden * {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        .hidden {
+            transform: translateY(12px) scale(0.96) !important;
+        }
+
+        .sub-panel.hidden,
+        .mode-grid.hidden,
+        .circle-btn.hidden,
+        #net-badge.hidden {
+            display: none !important;
+        }
+
+        /* --- ЦЕНТРАЛЬНЫЕ МОДАЛЬНЫЕ ЭКРАНЫ --- */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        .menu-card {
+            width: 100%;
+            max-width: 540px;
+            padding: 36px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 0%, rgba(255, 230, 150, 0.14), transparent 55%);
+            pointer-events: none;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #d8ecff;
+            margin-bottom: 10px;
+        }
+
+        h1.game-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.05;
+            color: #ffffff;
+            text-shadow: 0 4px 20px rgba(0, 15, 40, 0.55), 0 0 28px rgba(140, 205, 255, 0.65);
+            letter-spacing: 1.5px;
+        }
+
+        p.subtitle {
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            color: #d6ecff;
+            font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+            margin: 8px 0 22px 0;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        }
+
+        /* --- ПОЛЯ ВВОДА (НИКНЕЙМ И ID) --- */
+        .input-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #b8dcff;
+            margin-bottom: 7px;
+            padding-left: 4px;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 13px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(8, 20, 42, 0.45);
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.96rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            outline: none;
+            transition: all 0.25s ease;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.42);
+        }
+
+        .text-input:focus {
+            border-color: var(--gold-accent);
+            background: rgba(8, 22, 48, 0.68);
+            box-shadow: 0 0 18px rgba(255, 223, 115, 0.28);
+        }
+
+        /* --- СЕТКА РЕЖИМОВ ИГРЫ --- */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 11px;
+            margin-bottom: 6px;
+        }
+
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.13);
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.24);
+            border-color: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 12px 26px rgba(0, 15, 40, 0.35), 0 0 20px rgba(255, 255, 255, 0.18);
+        }
+
+        .mode-btn:active {
+            transform: translateY(0);
+        }
+
+        .mode-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .mode-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .mode-title {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .mode-desc {
+            display: block;
+            font-size: 0.74rem;
+            color: #c5e2ff;
+            font-weight: 300;
+        }
+
+        .mode-arrow {
+            font-size: 1.1rem;
+            opacity: 0.65;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .mode-btn:hover .mode-arrow {
+            transform: translateX(4px);
+            opacity: 1;
+        }
+
+        /* --- КНОПКИ ОСНОВНОГО ДЕЙСТВИЯ --- */
+        .main-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.12));
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            padding: 14px 32px;
+            font-size: 0.9rem;
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            box-shadow: 0 10px 24px rgba(0, 12, 32, 0.28);
+            transition: all 0.28s ease;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(255, 255, 255, 0.28);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.2));
+        }
+
+        .main-btn.gold {
+            background: linear-gradient(135deg, rgba(255, 215, 100, 0.36), rgba(255, 180, 60, 0.18));
+            border-color: var(--gold-accent);
+        }
+
+        .main-btn.secondary {
+            background: rgba(15, 32, 60, 0.45);
+            border-color: rgba(255, 255, 255, 0.3);
+            padding: 12px 22px;
+            font-size: 0.8rem;
+        }
+
+        /* --- СЕКЦИЯ ВЫБОРА СЛОЖНОСТИ ИИ / ОНЛАЙН ЛОББИ --- */
+        .sub-panel {
+            margin-top: 12px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: left;
+        }
+
+        .pill-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .pill-option {
+            flex: 1;
+            padding: 10px 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(10, 24, 48, 0.4);
+            color: #d0e8ff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pill-option.active {
+            background: rgba(255, 223, 115, 0.25);
+            border-color: var(--gold-accent);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 223, 115, 0.22);
+        }
+
+        /* --- ОНЛАЙН P2P КАРТОЧКА ID --- */
+        .id-display-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(6, 16, 36, 0.62);
+            border: 1px dashed rgba(255, 223, 115, 0.6);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }
+
+        .id-code {
+            font-family: 'Montserrat', monospace;
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: var(--gold-accent);
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .icon-action-btn {
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 8px 13px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .icon-action-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+            border-color: #ffffff;
+        }
+
+        .join-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .status-line {
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: #cbe5ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 22px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #88ccff;
+            box-shadow: 0 0 10px #88ccff;
+            animation: pulseDot 1.6s infinite ease-in-out;
+        }
+
+        .status-dot.ready { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .status-dot.error { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 0.75; }
+            50% { transform: scale(1.35); opacity: 1; }
+        }
+
+        /* --- ВЕРХНИЙ ИГРОВОЙ HUD --- */
+        #top-hud-wrapper {
+            width: 100%;
+            padding: calc(16px + var(--safe-top)) 20px 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        #hud-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 12px 24px;
+            min-width: 340px;
+            max-width: 680px;
+            width: 100%;
+            border-radius: 999px;
+        }
+
+        .player-slot {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            transition: all 0.35s ease;
+            opacity: 0.58;
+            min-width: 0;
+        }
+
+        .player-slot.active-turn {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.14);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.18);
+            transform: scale(1.03);
+        }
+
+        .piece-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+        }
+
+        .piece-avatar.p1 {
+            background: radial-gradient(circle at 35% 35%, #fffdf9, #d8bfa0 70%, #9c7a54);
+            border: 1.5px solid #ffffff;
+        }
+
+        .piece-avatar.p2 {
+            background: radial-gradient(circle at 35% 35%, #7a3b1e, #361407 70%, #1a0802);
+            border: 1.5px solid #ffb380;
+        }
+
+        .player-meta {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .player-name {
+            font-size: 0.86rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 125px;
+        }
+
+        .player-pips {
+            display: flex;
+            gap: 4px;
+            margin-top: 3px;
+        }
+
+        .pip {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .pip.filled-p1 { background: #fdf5e6; box-shadow: 0 0 6px #fdf5e6; }
+        .pip.filled-p2 { background: #ffb380; box-shadow: 0 0 6px #ffb380; }
+
+        .hud-center {
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        #turn-banner {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        #phase-banner {
+            margin: 2px 0 0 0;
+            font-size: 0.66rem;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #c5e3ff;
+        }
+
+        .p1-color { color: var(--p1-light); text-shadow: 0 0 14px rgba(253, 245, 230, 0.75); }
+        .p2-color { color: var(--p2-dark); text-shadow: 0 0 14px rgba(255, 179, 128, 0.75); }
+
+        /* --- СТРОКА СЕТЕВОГО СТАТУСА И ПИНГА --- */
+        #net-badge {
+            margin-top: 8px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #d8eeff;
+        }
+
+        /* --- ВСПЛЫВАЮЩИЕ ПОЭТИЧЕСКИЕ ЭМОЦИИ / УВЕДОМЛЕНИЯ --- */
+        #toast-container {
+            position: fixed;
+            top: calc(96px + var(--safe-top));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            width: 90%;
+            max-width: 440px;
+        }
+
+        .toast-msg {
+            padding: 10px 20px;
+            border-radius: 999px;
+            background: var(--glass-bg-strong);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1.08rem;
+            color: #ffffff;
+            text-align: center;
+            box-shadow: 0 12px 28px rgba(0, 10, 28, 0.45);
+            animation: toastInOut 3.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes toastInOut {
+            0% { opacity: 0; transform: translateY(-12px) scale(0.92); }
+            12% { opacity: 1; transform: translateY(0) scale(1); }
+            84% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        /* --- НИЖНЯЯ ПАНЕЛЬ ИНСТРУМЕНТОВ И ЗВУКА --- */
+        #bottom-bar {
+            width: 100%;
+            padding: 0 22px calc(18px + var(--safe-bottom)) 22px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        .dock-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .circle-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #ffffff;
+            cursor: pointer;
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 24px rgba(0, 12, 32, 0.38);
+            transition: all 0.25s ease;
+            outline: none;
+            padding: 0;
+        }
+
+        .circle-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: #ffffff;
+        }
+
+        .circle-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* --- ПАНЕЛЬ ЗВУКА --- */
+        #audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 7px 16px;
+            border-radius: 999px;
+            height: 44px;
+        }
+
+        #audio-btn {
+            font-size: 1.15rem;
+            cursor: pointer;
+            transition: transform 0.25s ease;
+            line-height: 1;
+        }
+
+        #audio-btn:hover { transform: scale(1.15); }
+
+        #volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 88px;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+        }
+
+        #volume-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.32);
+            border-radius: 2px;
+        }
+
+        #volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            background: #ffffff;
+            margin-top: -5.5px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+            transition: transform 0.15s ease;
+        }
+
+        #volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.22);
+        }
+
+        /* --- ВСПЛЫВАЮЩЕЕ МЕНЮ БЫСТРЫХ ФРАЗ (EMOTES) --- */
+        #emote-popover {
+            position: fixed;
+            bottom: calc(74px + var(--safe-bottom));
+            left: 22px;
+            padding: 10px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 20;
+            max-width: 280px;
+        }
+
+        .emote-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 8px 13px;
+            border-radius: 10px;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .emote-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: var(--gold-accent);
+            transform: translateX(3px);
+        }
+
+        /* --- МОДАЛЬНОЕ ОКНО ПРАВИЛ --- */
+        .rules-list {
+            text-align: left;
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #dceeff;
+            margin: 18px 0 26px 0;
+            padding-left: 18px;
+        }
+
+        .rules-list li {
+            margin-bottom: 10px;
+        }
+
+        .rules-list strong {
+            color: var(--gold-accent);
+            font-weight: 600;
+        }
+
+        /* --- СТАТИСТИКА ПАРТИИ НА ЭКРАНЕ ПОБЕДЫ --- */
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 18px 0 28px 0;
+        }
+
+        .stat-box {
+            background: rgba(8, 20, 44, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 12px;
+            padding: 10px 18px;
+            min-width: 100px;
+        }
+
+        .stat-val {
+            display: block;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--gold-accent);
+        }
+
+        .stat-lbl {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #b8dcff;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* --- АДАПТАЦИЯ ПОД СМАРТФОНЫ --- */
+        @media (max-width: 640px) {
+            .menu-card {
+                padding: 24px 18px;
+                border-radius: 16px;
+            }
+
+            #hud-bar {
+                padding: 9px 14px;
+                gap: 8px;
+                min-width: unset;
+            }
+
+            .player-slot {
+                padding: 4px 8px;
+                gap: 7px;
+            }
+
+            .player-name {
+                font-size: 0.76rem;
+                max-width: 78px;
+            }
+
+            .piece-avatar {
+                width: 22px;
+                height: 22px;
+            }
+
+            #turn-banner {
+                font-size: 1.08rem;
+            }
+
+            #phase-banner {
+                font-size: 0.58rem;
+                letter-spacing: 1.5px;
+            }
+
+            #bottom-bar {
+                padding: 0 14px calc(14px + var(--safe-bottom)) 14px;
+            }
+
+            .circle-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.05rem;
+            }
+
+            #audio-controls {
+                height: 40px;
+                padding: 6px 12px;
+                gap: 8px;
+            }
+
+            #volume-slider {
+                width: 64px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="game-canvas"></canvas>
+    <div id="cinematic-vignette"></div>
+
+    <!-- ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ И ПОЭТИЧЕСКИЕ ЦИТАТЫ -->
+    <div id="toast-container"></div>
+
+    <!-- СЛОЙ ИНТЕРФЕЙСА -->
+    <div id="ui-layer">
+
+        <!-- ВЕРХНИЙ ИГРОВОЙ HUD -->
+        <div id="top-hud-wrapper" class="hidden">
+            <div id="hud-bar" class="glass-panel">
+                <!-- Игрок 1 (Светлое Дерево) -->
+                <div id="slot-p1" class="player-slot active-turn">
+                    <div class="piece-avatar p1"></div>
+                    <div class="player-meta">
+                        <span id="hud-name-p1" class="player-name">Светлые</span>
+                        <div id="pips-p1" class="player-pips">
+                            <span class="pip filled-p1"></span>
+                            <span class="pip filled-p1"></span>
+                            <span class="pip filled-p1"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Центр: Текущий ход и фаза -->
+                <div class="hud-center">
+                    <h2 id="turn-banner" class="p1-color">Ход Светлых</h2>
+                    <p id="phase-banner">Фаза I: Расстановка</p>
+                </div>
+
+                <!-- Игрок 2 (Тёмное Дерево) -->
+                <div id="slot-p2" class="player-slot">
+                    <div class="player-meta" style="align-items: flex-end; text-align: right;">
+                        <span id="hud-name-p2" class="player-name">Тёмные</span>
+                        <div id="pips-p2" class="player-pips">
+                            <span class="pip filled-p2"></span>
+                            <span class="pip filled-p2"></span>
+                            <span class="pip filled-p2"></span>
+                        </div>
+                    </div>
+                    <div class="piece-avatar p2"></div>
+                </div>
+            </div>
+
+            <!-- Индикатор прямого P2P-соединения (виден только в онлайне) -->
+            <div id="net-badge" class="glass-panel hidden">
+                <span id="net-dot" class="status-dot ready"></span>
+                <span id="net-text">P2P Онлайн • 24 мс</span>
+            </div>
+        </div>
+
+        <!-- ЦЕНТРАЛЬНОЕ ГЛАВНОЕ МЕНЮ -->
+        <div id="intro-screen" class="modal-backdrop">
+            <div class="glass-panel menu-card">
+                <div class="brand-badge">✦ Aozora Sanctuary Edition ✦</div>
+                <h1 class="game-title">Subarashiki Morris</h1>
+                <p class="subtitle">«Живи, живи счастливо!»</p>
+
+                <!-- Ввод никнейма игрока -->
+                <div class="input-group">
+                    <label class="input-label" for="nickname-input">Ваше имя под этим небом</label>
+                    <input type="text" id="nickname-input" class="text-input" maxlength="16" placeholder="Например: Юки / Закуро..." autocomplete="off">
+                </div>
+
+                <!-- Главный выбор режима -->
+                <div id="main-mode-list" class="mode-grid">
+                    <button id="btn-mode-local" class="mode-btn">
+                        <div class="mode-btn-left">
+                            <div class="mode-icon">⛩️</div>
+                            <div>
+                                <span class="mode-title">На одном устройстве</span>
+                                <span class="mode-desc">Партия вдвоём на одном ПК или смартфоне</span>
+                            </div>
+                        </div>
+                        <span class="mode-arrow">→</span>
+                    </button>
+
+                    <button id="btn-mode-online" class="mode-btn">
+                        <div class="mode-btn-left">
+                            <div class="mode-icon">☁️</div>
+                            <div>
+                                <span class="mode-title">Онлайн напрямую по ID</span>
+                                <span class="mode-desc">Мгновенное P2P-соединение с другом по коду</span>
+                            </div>
+                        </div>
+                        <span class="mode-arrow">→</span>
+                    </button>
+
+                    <button id="btn-mode-ai" class="mode-btn">
+                        <div class="mode-btn-left">
+                            <div class="mode-icon">🌻</div>
+                            <div>
+                                <span class="mode-title">Против Духа Неба (ИИ)</span>
+                                <span class="mode-desc">Одиночная медитативная партия с выбором силы</span>
+                            </div>
+                        </div>
+                        <span class="mode-arrow">→</span>
+                    </button>
+                </div>
+
+                <!-- Подпанель: Настройка ИИ -->
+                <div id="panel-ai-config" class="sub-panel hidden">
+                    <span class="input-label">Мудрость соперника</span>
+                    <div class="pill-selector">
+                        <button class="pill-option" data-ai="easy">Прогулка</button>
+                        <button class="pill-option active" data-ai="medium">Подсолнух</button>
+                        <button class="pill-option" data-ai="hard">Абсолют</button>
+                    </div>
+                    <div class="btn-row">
+                        <button id="btn-ai-back" class="main-btn secondary">Назад</button>
+                        <button id="btn-ai-start" class="main-btn gold">Взглянуть в небо</button>
+                    </div>
+                </div>
+
+                <!-- Подпанель: Онлайн по ID (P2P) -->
+                <div id="panel-online-config" class="sub-panel hidden">
+                    <span class="input-label">Ваш ID комнаты (отправьте другу)</span>
+                    <div class="id-display-box">
+                        <span id="my-peer-id" class="id-code">...</span>
+                        <button id="btn-copy-id" class="icon-action-btn" title="Скопировать ID">📋 Копировать</button>
+                    </div>
+
+                    <span class="input-label">Или введите ID друга для входа</span>
+                    <div class="join-row">
+                        <input type="text" id="remote-peer-input" class="text-input" placeholder="Код друга (напр. A7K9M2)" maxlength="24" style="text-transform: uppercase;">
+                        <button id="btn-join-peer" class="main-btn gold" style="padding: 0 24px; border-radius: 12px;">Войти</button>
+                    </div>
+
+                    <div class="status-line">
+                        <span id="p2p-status-dot" class="status-dot"></span>
+                        <span id="p2p-status-text">Инициализация небесного канала...</span>
+                    </div>
+
+                    <div class="btn-row" style="margin-top: 14px;">
+                        <button id="btn-online-back" class="main-btn secondary">Назад в меню</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ЗАВЕРШЕНИЯ ПАРТИИ -->
+        <div id="game-over-screen" class="modal-backdrop hidden">
+            <div class="glass-panel menu-card">
+                <div class="brand-badge">✦ Завершение пути ✦</div>
+                <h1 id="winner-text" class="game-title">Светлые Победили</h1>
+                <p id="winner-quote" class="subtitle">«Под этим бескрайним небом всё обретает смысл»</p>
+
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <span id="stat-moves" class="stat-val">12</span>
+                        <span class="stat-lbl">Ходов</span>
+                    </div>
+                    <div class="stat-box">
+                        <span id="stat-score" class="stat-val">1 : 0</span>
+                        <span class="stat-lbl">Счёт встреч</span>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button id="btn-back-menu" class="main-btn secondary">В главное меню</button>
+                    <button id="restart-btn" class="main-btn gold">Сыграть ещё раз</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО ПРАВИЛ ИГРЫ -->
+        <div id="rules-modal" class="modal-backdrop hidden">
+            <div class="glass-panel menu-card" style="max-width: 480px;">
+                <div class="brand-badge">✦ Трактат о правилах ✦</div>
+                <h1 class="game-title" style="font-size: 2.3rem;">Three Men's Morris</h1>
+                <ul class="rules-list">
+                    <li><strong>Цель игры:</strong> первым выстроить свои 3 деревянные фигуры в единую линию — по горизонтали, вертикали или главной диагонали.</li>
+                    <li><strong>Ступень I (Рождение):</strong> у каждого игрока в руке по 3 фигуры. По очереди выставляйте их на любые свободные золотые узлы доски.</li>
+                    <li><strong>Ступень II (Путь):</strong> когда все 6 фигур выставлены на доску, игроки по очереди перемещают любую свою фигуру по резным линиям на соседний свободный узел.</li>
+                    <li><strong>Управление 3D-миром:</strong> вращайте камеру пальцем или мышью, приближайте колёсиком или щипком, переключайте время суток кнопкой солнца/луны внизу.</li>
+                </ul>
+                <button id="btn-close-rules" class="main-btn">Вернуться к небу</button>
+            </div>
+        </div>
+
+        <!-- ВСПЛЫВАЮЩЕЕ МЕНЮ ПОЭТИЧЕСКИХ ФРАЗ (В ИГРЕ) -->
+        <div id="emote-popover" class="glass-panel hidden">
+            <button class="emote-item" data-msg="«Живи, живи счастливо!»">🌻 «Живи, живи счастливо!»</button>
+            <button class="emote-item" data-msg="«Границы моего языка означают границы моего мира»">📖 «Границы моего языка...»</button>
+            <button class="emote-item" data-msg="«Ночной подсолнух тянется к звёздам»">🌙 «Ночной подсолнух...»</button>
+            <button class="emote-item" data-msg="«Прекрасный ход под этим небом!»">✨ «Прекрасный ход!»</button>
+        </div>
+
+        <!-- НИЖНЯЯ ПАНЕЛЬ ИНСТРУМЕНТОВ И ЗВУКА -->
+        <div id="bottom-bar">
+            <div class="dock-group">
+                <button id="btn-home" class="circle-btn hidden" title="В главное меню">🏠</button>
+                <button id="btn-camera-view" class="circle-btn hidden" title="Сменить ракурс камеры (3D / Сверху)">🧭</button>
+                <button id="btn-sky-theme" class="circle-btn" title="Сменить время суток (Полдень / Закат / Ночь)">☀️</button>
+                <button id="btn-emote" class="circle-btn hidden" title="Поэтическая весть сопернику">💬</button>
+                <button id="btn-rules" class="circle-btn" title="Правила игры">?</button>
+            </div>
+
+            <div class="dock-group">
+                <div id="audio-controls" class="glass-panel">
+                    <input type="range" id="volume-slider" min="0" max="0.25" step="0.005" title="Громкость музыки и звуков">
+                    <div id="audio-btn" title="Включить / Выключить звук">🔊</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        /* ============================================================================
+           1. МУЗЫКАЛЬНЫЙ ДВИЖОК: "YORU NO HIMAWARI" (Subarashiki Hibi OST) + WOOD SFX
+           ============================================================================ */
+        let audioCtx = null;
+        let isMusicPlaying = false;
+        let nextBeatTime = 0;
+        let globalGain = null;
+        let masterDelay = null;
+        let compressor = null;
+        let currentBeat = 0;
+        let currentCycle = 0;
+        let musicInterval = null;
+
+        const DEFAULT_VOLUME = 0.035;
+        const BEAT_DURATION = 0.7;
+
+        const yoruNoHimawariScore = [
+            // --- ТАКТ 1: Em (Ми-минор) ---
+            { beat: 0, notes: [40], vel: 0.6 },
+            { beat: 0.05, notes: [79], vel: 0.8 },
+            { beat: 1, notes: [47], vel: 0.35 },
+            { beat: 2, notes: [52], vel: 0.3 },
+            { beat: 3, notes: [55], vel: 0.25 },
+            { beat: 3.1, notes: [78], vel: 0.7 },
+            { beat: 4, notes: [76], vel: 0.6 },
+            { beat: 5, notes: [59], vel: 0.22 },
+
+            // --- ТАКТ 2: Cmaj7 (До-мажор септ) ---
+            { beat: 6, notes: [36], vel: 0.6 },
+            { beat: 6.05, notes: [83], vel: 0.82 },
+            { beat: 7, notes: [43], vel: 0.35 },
+            { beat: 8, notes: [48], vel: 0.3 },
+            { beat: 9, notes: [52], vel: 0.25 },
+            { beat: 9.1, notes: [81], vel: 0.72 },
+            { beat: 10, notes: [79], vel: 0.6 },
+            { beat: 11, notes: [64], vel: 0.22 },
+
+            // --- ТАКТ 3: Dadd9 (Ре-мажор) ---
+            { beat: 12, notes: [38], vel: 0.6 },
+            { beat: 12.05, notes: [81], vel: 0.8 },
+            { beat: 13, notes: [45], vel: 0.35 },
+            { beat: 14, notes: [50], vel: 0.3 },
+            { beat: 15, notes: [54], vel: 0.25 },
+            { beat: 15.1, notes: [79], vel: 0.7 },
+            { beat: 16, notes: [78], vel: 0.6 },
+            { beat: 17, notes: [62], vel: 0.22 },
+
+            // --- ТАКТ 4: B7sus4 -> B7 -> разрешение ---
+            { beat: 18, notes: [35], vel: 0.6 },
+            { beat: 18.05, notes: [79], vel: 0.72 },
+            { beat: 19, notes: [42], vel: 0.35 },
+            { beat: 20, notes: [47], vel: 0.3 },
+            { beat: 21, notes: [51], vel: 0.25 },
+            { beat: 21.1, notes: [78], vel: 0.62 },
+            { beat: 22, notes: [75], vel: 0.6 },
+            { beat: 23, notes: [71], vel: 0.52 }
+        ];
+
+        const highHarmonyOverlay = [
+            { beat: 0.08, notes: [91], vel: 0.32 },
+            { beat: 6.08, notes: [95], vel: 0.34 },
+            { beat: 12.08, notes: [93], vel: 0.32 },
+            { beat: 16.0, notes: [90], vel: 0.28 },
+            { beat: 20.0, notes: [88], vel: 0.26 },
+            { beat: 23.0, notes: [83], vel: 0.30 }
+        ];
+
+        function synthesizePianoNote(midiNote, time, velocity) {
+            if (!audioCtx) return;
+
+            const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+
+            const osc1 = audioCtx.createOscillator();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(freq, time);
+
+            const osc2 = audioCtx.createOscillator();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(freq, time);
+
+            const noteGain = audioCtx.createGain();
+            const maxVol = velocity * 0.85;
+
+            noteGain.gain.setValueAtTime(0, time);
+            noteGain.gain.linearRampToValueAtTime(maxVol, time + 0.025);
+            noteGain.gain.exponentialRampToValueAtTime(maxVol * 0.15, time + 1.25);
+            noteGain.gain.exponentialRampToValueAtTime(0.0001, time + 4.8);
+            noteGain.gain.linearRampToValueAtTime(0, time + 5.0);
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(Math.min(freq * 2.5 + 600 * velocity, 3100), time);
+            filter.frequency.exponentialRampToValueAtTime(freq + 50, time + 2.1);
+
+            osc1.connect(noteGain);
+
+            const overtoneGain = audioCtx.createGain();
+            overtoneGain.gain.value = 0.08;
+            osc2.connect(overtoneGain);
+            overtoneGain.connect(noteGain);
+
+            noteGain.connect(filter);
+            filter.connect(globalGain);
+            filter.connect(masterDelay);
+
+            osc1.start(time);
+            osc1.stop(time + 5.1);
+            osc2.start(time);
+            osc2.stop(time + 5.1);
+        }
+
+        function synthesizeSkyPad(midiNote, time) {
+            if (!audioCtx) return;
+            const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time);
+
+            const padGain = audioCtx.createGain();
+            padGain.gain.setValueAtTime(0, time);
+            padGain.gain.linearRampToValueAtTime(0.09, time + 1.2);
+            padGain.gain.exponentialRampToValueAtTime(0.0001, time + 4.2);
+            padGain.gain.linearRampToValueAtTime(0, time + 4.4);
+
+            osc.connect(padGain);
+            padGain.connect(masterDelay);
+            osc.start(time);
+            osc.stop(time + 4.5);
+        }
+
+        function playWoodSfx(type = 'place') {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'place') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(195, now);
+                osc.frequency.exponentialRampToValueAtTime(68, now + 0.085);
+
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.45, now + 0.006);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+                osc.connect(gain);
+                gain.connect(globalGain);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'select') {
+                synthesizePianoNote(88, now, 0.25);
+            } else if (type === 'move') {
+                synthesizePianoNote(76, now, 0.22);
+                setTimeout(() => playWoodSfx('place'), 520);
+            } else if (type === 'error') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(130, now);
+                osc.frequency.linearRampToValueAtTime(98, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(globalGain);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'win') {
+                [64, 68, 71, 76, 83].forEach((n, idx) => {
+                    synthesizePianoNote(n, now + idx * 0.14, 0.55);
+                });
+            }
+        }
+
+        function createVastSkyReverb() {
+            masterDelay = audioCtx.createGain();
+            masterDelay.gain.value = 0.5;
+
+            const delay1 = audioCtx.createDelay(3.0);
+            delay1.delayTime.value = 0.45;
+            const delay2 = audioCtx.createDelay(3.0);
+            delay2.delayTime.value = 0.73;
+
+            const feedback1 = audioCtx.createGain();
+            feedback1.gain.value = 0.4;
+            const feedback2 = audioCtx.createGain();
+            feedback2.gain.value = 0.3;
+
+            const dampFilter = audioCtx.createBiquadFilter();
+            dampFilter.type = 'lowpass';
+            dampFilter.frequency.value = 850;
+
+            masterDelay.connect(delay1);
+            masterDelay.connect(delay2);
+            delay1.connect(dampFilter);
+            delay2.connect(dampFilter);
+
+            dampFilter.connect(globalGain);
+            dampFilter.connect(feedback1);
+            feedback1.connect(delay2);
+            dampFilter.connect(feedback2);
+            feedback2.connect(delay1);
+        }
+
+        function scheduleMusic() {
+            if (!isMusicPlaying || !audioCtx) return;
+
+            while (nextBeatTime < audioCtx.currentTime + 0.2) {
+                const events = yoruNoHimawariScore.filter(
+                    e => Math.floor(e.beat) === currentBeat || (e.beat > currentBeat && e.beat < currentBeat + 1)
+                );
+
+                events.forEach(event => {
+                    const humanizeDelay = (Math.random() * 0.026) - 0.013;
+                    const playTime = nextBeatTime + ((event.beat - currentBeat) * BEAT_DURATION) + humanizeDelay;
+                    event.notes.forEach(note => synthesizePianoNote(note, playTime, event.vel));
+                });
+
+                if (currentCycle % 2 === 1) {
+                    const highEvents = highHarmonyOverlay.filter(
+                        e => Math.floor(e.beat) === currentBeat || (e.beat > currentBeat && e.beat < currentBeat + 1)
+                    );
+                    highEvents.forEach(event => {
+                        const playTime = nextBeatTime + ((event.beat - currentBeat) * BEAT_DURATION);
+                        event.notes.forEach(note => synthesizePianoNote(note, playTime, event.vel));
+                    });
+                }
+
+                if (currentBeat === 0) synthesizeSkyPad(52, nextBeatTime);
+                if (currentBeat === 6) synthesizeSkyPad(48, nextBeatTime);
+                if (currentBeat === 12) synthesizeSkyPad(50, nextBeatTime);
+                if (currentBeat === 18) synthesizeSkyPad(47, nextBeatTime);
+
+                currentBeat++;
+                nextBeatTime += BEAT_DURATION;
+
+                if (currentBeat >= 24) {
+                    currentBeat = 0;
+                    currentCycle++;
+                }
+            }
+        }
+
+        function initAudio() {
+            if (audioCtx) {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                return;
+            }
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.value = -10;
+            compressor.knee.value = 12;
+            compressor.ratio.value = 4;
+            compressor.attack.value = 0.01;
+            compressor.release.value = 0.25;
+
+            globalGain = audioCtx.createGain();
+            globalGain.gain.value = DEFAULT_VOLUME;
+
+            globalGain.connect(compressor);
+            compressor.connect(audioCtx.destination);
+
+            createVastSkyReverb();
+
+            nextBeatTime = audioCtx.currentTime + 0.35;
+            currentBeat = 0;
+            isMusicPlaying = true;
+
+            if (musicInterval) clearInterval(musicInterval);
+            musicInterval = setInterval(scheduleMusic, 50);
+
+            const volSlider = document.getElementById('volume-slider');
+            volSlider.value = DEFAULT_VOLUME;
+        }
+
+        const volSliderEl = document.getElementById('volume-slider');
+        volSliderEl.value = DEFAULT_VOLUME;
+
+        volSliderEl.addEventListener('input', (e) => {
+            initAudio();
+            if (globalGain && audioCtx) {
+                const newVolume = parseFloat(e.target.value);
+                globalGain.gain.setTargetAtTime(newVolume, audioCtx.currentTime, 0.04);
+                const btn = document.getElementById('audio-btn');
+                if (newVolume === 0) btn.innerText = '🔇';
+                else if (audioCtx.state === 'running') btn.innerText = '🔊';
+            }
+        });
+
+        document.getElementById('audio-btn').addEventListener('click', (e) => {
+            if (!audioCtx) {
+                initAudio();
+                return;
+            }
+            const slider = document.getElementById('volume-slider');
+            if (audioCtx.state === 'running') {
+                audioCtx.suspend();
+                e.target.innerText = '🔇';
+                slider.style.opacity = '0.45';
+            } else {
+                audioCtx.resume();
+                if (parseFloat(slider.value) > 0) e.target.innerText = '🔊';
+                slider.style.opacity = '1';
+            }
+        });
+
+        /* ============================================================================
+           2. УВЕДОМЛЕНИЯ (TOASTS) И НИКНЕЙМЫ
+           ============================================================================ */
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = 'toast-msg';
+            el.textContent = message;
+            container.appendChild(el);
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 3450);
+        }
+
+        const nickInput = document.getElementById('nickname-input');
+        const savedNick = localStorage.getItem('subahibi_tmm_nick');
+        if (savedNick) {
+            nickInput.value = savedNick;
+        } else {
+            nickInput.value = 'Странник Неба';
+        }
+        nickInput.addEventListener('change', () => {
+            const val = nickInput.value.trim() || 'Странник Неба';
+            nickInput.value = val;
+            localStorage.setItem('subahibi_tmm_nick', val);
+        });
+
+        function getMyNickname() {
+            const v = nickInput.value.trim();
+            return v.length > 0 ? v : 'Странник Неба';
+        }
+
+        /* ============================================================================
+           3. ИГРОВЫЕ КОНСТАНТЫ И СОСТОЯНИЕ ПАРТИИ
+           ============================================================================ */
+        const SPACING = 3.6;
+        const nodes = [
+            new THREE.Vector3(-SPACING, 0, -SPACING), new THREE.Vector3(0, 0, -SPACING), new THREE.Vector3(SPACING, 0, -SPACING),
+            new THREE.Vector3(-SPACING, 0, 0),        new THREE.Vector3(0, 0, 0),        new THREE.Vector3(SPACING, 0, 0),
+            new THREE.Vector3(-SPACING, 0, SPACING),  new THREE.Vector3(0, 0, SPACING),  new THREE.Vector3(SPACING, 0, SPACING)
+        ];
+        const adjacency = [
+            [1, 3, 4],
+            [0, 2, 4],
+            [1, 4, 5],
+            [0, 4, 6],
+            [0, 1, 2, 3, 5, 6, 7, 8],
+            [2, 4, 8],
+            [3, 4, 7],
+            [4, 6, 8],
+            [4, 5, 7]
+        ];
+        const winLines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        let gameState = 'intro';
+        let playMode = 'local';
+        let aiDifficulty = 'medium';
+        let phase = 1;
+        let turn = 1;
+        let p1Pieces = 0;
+        let p2Pieces = 0;
+        let moveCounter = 0;
+        let scoreP1 = 0;
+        let scoreP2 = 0;
+        let playerNames = { 1: 'Светлое Дерево', 2: 'Тёмное Дерево' };
+
+        let board = Array(9).fill(0);
+        let pieces = [];
+        let selectedPiece = null;
+        let isAnimating = false;
+        let remoteHoverIndex = -1;
+
+        /* ============================================================================
+           4. ПРЯМОЙ ОНЛАЙН ПО ID (PEERJS WEBRTC P2P)
+           ============================================================================ */
+        const PEER_PREFIX = 'subahibi-aozora-';
+        let peer = null;
+        let conn = null;
+        let myRoomCode = '';
+        let myOnlineSide = 1;
+        let pingInterval = null;
+        let lastPingSent = 0;
+        let currentPingMs = 24;
+
+        function generateShortCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function setP2PStatus(text, state = 'normal') {
+            const dot = document.getElementById('p2p-status-dot');
+            const label = document.getElementById('p2p-status-text');
+            label.textContent = text;
+            dot.className = 'status-dot';
+            if (state === 'ready') dot.classList.add('ready');
+            if (state === 'error') dot.classList.add('error');
+        }
+
+        function initPeerSession() {
+            if (peer && !peer.destroyed) return;
+
+            myRoomCode = generateShortCode();
+            document.getElementById('my-peer-id').textContent = myRoomCode;
+            setP2PStatus('Подключение к небесному сигнальному серверу...', 'normal');
+
+            try {
+                peer = new Peer(PEER_PREFIX + myRoomCode, { debug: 0 });
+
+                peer.on('open', () => {
+                    document.getElementById('my-peer-id').textContent = myRoomCode;
+                    setP2PStatus('Канал открыт! Отправьте код другу или введите его код.', 'ready');
+                });
+
+                peer.on('connection', (incomingConn) => {
+                    if (conn && conn.open) {
+                        incomingConn.close();
+                        return;
+                    }
+                    conn = incomingConn;
+                    myOnlineSide = 1;
+                    setupConnectionHandlers();
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'unavailable-id') {
+                        peer.destroy();
+                        peer = null;
+                        initPeerSession();
+                    } else if (err.type === 'peer-unavailable') {
+                        setP2PStatus('Игрок с таким ID не найден. Проверьте код.', 'error');
+                        showToast('Игрок с указанным ID не найден');
+                    } else {
+                        setP2PStatus('Сетевое уведомление: ' + err.type, 'error');
+                    }
+                });
+            } catch (e) {
+                setP2PStatus('Не удалось запустить WebRTC: проверьте интернет', 'error');
+            }
+        }
+
+        function connectToFriend(rawCode) {
+            const clean = rawCode.trim().toUpperCase().replace(PEER_PREFIX.toUpperCase(), '');
+            if (!clean) {
+                showToast('Введите ID друга');
+                return;
+            }
+            if (clean === myRoomCode) {
+                showToast('Это ваш собственный ID комнаты');
+                return;
+            }
+            if (!peer || peer.destroyed) {
+                initPeerSession();
+            }
+
+            setP2PStatus(`Соединение с комнатой ${clean}...`, 'normal');
+            const targetPeerId = rawCode.startsWith(PEER_PREFIX) ? rawCode : (PEER_PREFIX + clean);
+            conn = peer.connect(targetPeerId, { reliable: true });
+            myOnlineSide = 2;
+            setupConnectionHandlers();
+        }
+
+        function setupConnectionHandlers() {
+            if (!conn) return;
+
+            conn.on('open', () => {
+                setP2PStatus('Соединение установлено! Запуск партии...', 'ready');
+                sendNetPacket({
+                    type: 'handshake',
+                    nickname: getMyNickname()
+                });
+
+                if (pingInterval) clearInterval(pingInterval);
+                pingInterval = setInterval(() => {
+                    if (conn && conn.open) {
+                        lastPingSent = performance.now();
+                        sendNetPacket({ type: 'ping' });
+                    }
+                }, 2500);
+            });
+
+            conn.on('data', (data) => {
+                handleNetPacket(data);
+            });
+
+            conn.on('close', () => {
+                showToast('Соперник покинул небесное святилище');
+                document.getElementById('net-dot').className = 'status-dot error';
+                document.getElementById('net-text').textContent = 'Связь прервана';
+            });
+        }
+
+        function sendNetPacket(payload) {
+            if (conn && conn.open) {
+                conn.send(payload);
+            }
+        }
+
+        function handleNetPacket(data) {
+            if (!data || !data.type) return;
+
+            switch (data.type) {
+                case 'handshake': {
+                    const oppName = (data.nickname || 'Странник').slice(0, 16);
+                    if (myOnlineSide === 1) {
+                        playerNames[1] = getMyNickname();
+                        playerNames[2] = oppName;
+                    } else {
+                        playerNames[1] = oppName;
+                        playerNames[2] = getMyNickname();
+                    }
+                    showToast(`Соединено с игроком «${oppName}»!`);
+                    startMatch('online');
+                    break;
+                }
+                case 'slot_click': {
+                    if (playMode === 'online' && gameState === 'playing' && turn !== myOnlineSide) {
+                        executeSlotAction(data.index, true);
+                    }
+                    break;
+                }
+                case 'hover': {
+                    remoteHoverIndex = typeof data.index === 'number' ? data.index : -1;
+                    break;
+                }
+                case 'emote': {
+                    if (data.msg) {
+                        const sender = playerNames[myOnlineSide === 1 ? 2 : 1];
+                        showToast(`${sender}: ${data.msg}`);
+                        playWoodSfx('select');
+                    }
+                    break;
+                }
+                case 'rematch': {
+                    myOnlineSide = myOnlineSide === 1 ? 2 : 1;
+                    const temp = playerNames[1];
+                    playerNames[1] = playerNames[2];
+                    playerNames[2] = temp;
+                    showToast('Новая партия началась! Цвета фигур поменялись.');
+                    resetBoardAndRestart();
+                    break;
+                }
+                case 'ping': {
+                    sendNetPacket({ type: 'pong' });
+                    break;
+                }
+                case 'pong': {
+                    currentPingMs = Math.max(4, Math.round(performance.now() - lastPingSent));
+                    const netText = document.getElementById('net-text');
+                    const sideLabel = myOnlineSide === 1 ? 'Вы: Светлые' : 'Вы: Тёмные';
+                    netText.textContent = `${sideLabel} • Пинг ${currentPingMs} мс`;
+                    break;
+                }
+            }
+        }
+
+        /* ============================================================================
+           5. 3D СЦЕНА, ТЕНЬ И ПОСТОБРАБОТКА УРОВНЯ UNITY (THREE.JS)
+           ============================================================================ */
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x4a88dd, 0.0042);
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 420);
+        camera.position.set(0, 15, 15);
+        camera.lookAt(0, 0, 0);
+
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.22,
+            0.5,
+            0.88
+        );
+        composer.addPass(bloomPass);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.055;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02;
+        controls.minDistance = 7.2;
+        controls.maxDistance = 26;
+        controls.enabled = false;
+
+        /* ============================================================================
+           6. ШЕЙДЕРНЫЙ НЕБОСВОД И ПРЕСЕТЫ ВРЕМЕНИ СУТОК (AOZORA / YUUGURE / YORU)
+           ============================================================================ */
+        const skyThemes = [
+            {
+                name: 'Лазурный полдень (Aozora)',
+                icon: '☀️',
+                topColor: new THREE.Color(0x003ec2),
+                bottomColor: new THREE.Color(0x6ebbff),
+                cloudColor: new THREE.Color(0xffffff),
+                cloudShadow: new THREE.Color(0x7ca6d8),
+                sunColor: new THREE.Color(0xfffaee),
+                sunIntensity: 3.3,
+                ambientIntensity: 0.72,
+                fogColor: new THREE.Color(0x5a99eb),
+                starVisibility: 0.0
+            },
+            {
+                name: 'Золотой закат (Himawari Yuugure)',
+                icon: '🌅',
+                topColor: new THREE.Color(0x1b1e54),
+                bottomColor: new THREE.Color(0xff7d42),
+                cloudColor: new THREE.Color(0xffe4bd),
+                cloudShadow: new THREE.Color(0x6d4375),
+                sunColor: new THREE.Color(0xffb56b),
+                sunIntensity: 3.0,
+                ambientIntensity: 0.58,
+                fogColor: new THREE.Color(0xc96f5b),
+                starVisibility: 0.28
+            },
+            {
+                name: 'Ночной подсолнух (Yoru no Himawari)',
+                icon: '🌙',
+                topColor: new THREE.Color(0x03081a),
+                bottomColor: new THREE.Color(0x132e5e),
+                cloudColor: new THREE.Color(0xc4dcff),
+                cloudShadow: new THREE.Color(0x182b52),
+                sunColor: new THREE.Color(0xa6ccff),
+                sunIntensity: 2.35,
+                ambientIntensity: 0.45,
+                fogColor: new THREE.Color(0x0c1d3d),
+                starVisibility: 1.0
+            }
+        ];
+        let currentThemeIndex = 0;
+
+        const skyUniforms = {
+            time: { value: 0.0 },
+            topColor: { value: skyThemes[0].topColor.clone() },
+            bottomColor: { value: skyThemes[0].bottomColor.clone() },
+            cloudColor: { value: skyThemes[0].cloudColor.clone() },
+            cloudShadow: { value: skyThemes[0].cloudShadow.clone() },
+            starVisibility: { value: 0.0 }
+        };
+
+        // Небосвод с многооктавным объёмным слоем облаков и солнечным ореолом
+        const skyMat = new THREE.ShaderMaterial({
+            uniforms: skyUniforms,
+            side: THREE.BackSide,
+            depthWrite: false,
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform vec3 topColor;
+                uniform vec3 bottomColor;
+                uniform vec3 cloudColor;
+                uniform vec3 cloudShadow;
+                uniform float starVisibility;
+                varying vec3 vWorldPosition;
+
+                float hash(vec3 p) {
+                    p = fract(p * 0.3183099 + 0.1);
+                    p *= 17.0;
+                    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                }
+
+                float noise(vec3 x) {
+                    vec3 i = floor(x);
+                    vec3 f = fract(x);
+                    f = f * f * (3.0 - 2.0 * f);
+                    return mix(mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                                   mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                               mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                                   mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+                }
+
+                // 6-октавный фрактальный шум с кучевой детализацией (Billow + FBM)
+                float fbmClouds(vec3 p) {
+                    float f = 0.0;
+                    float amp = 0.52;
+                    for (int i = 0; i < 6; i++) {
+                        float n = noise(p);
+                        // Смешиваем мягкий шум и кучевой (billow) рельеф
+                        float billow = 1.0 - abs(n * 2.0 - 1.0);
+                        f += amp * mix(n, billow, 0.38);
+                        p = p * 2.07 + vec3(0.31, 0.17, 0.43);
+                        amp *= 0.49;
+                    }
+                    return f;
+                }
+
+                void main() {
+                    vec3 dir = normalize(vWorldPosition);
+                    float h = abs(dir.y);
+                    vec3 sky = mix(bottomColor, topColor, pow(h, 0.56));
+
+                    // Звёзды в ночном режиме
+                    if (starVisibility > 0.01 && dir.y > -0.05) {
+                        float starHash = hash(floor(dir * 280.0));
+                        if (starHash > 0.9968) {
+                            float twinkle = 0.5 + 0.5 * sin(time * 3.2 + starHash * 120.0);
+                            sky += vec3(0.96, 0.98, 1.0) * twinkle * starVisibility * smoothstep(0.0, 0.3, dir.y);
+                        }
+                    }
+
+                    vec3 sunDir = normalize(vec3(0.75, 0.62, -0.6));
+                    float sunDot = max(dot(dir, sunDir), 0.0);
+
+                    // Двухслойное объёмное трассирование облачного свода
+                    vec3 p1 = dir * 2.6 + vec3(time * 0.009, 0.0, time * 0.006);
+                    float n1 = fbmClouds(p1);
+                    // Смещение для расчёта самозатенения облака от солнца
+                    float nLight = fbmClouds(p1 + sunDir * 0.18);
+
+                    float cloudDensity = smoothstep(0.46, 0.72, n1);
+                    float selfShadow = smoothstep(0.42, 0.68, nLight);
+
+                    // Закон Бера-Паудера + серебристая кромка у солнца (Mie forward scatter)
+                    float silverLining = pow(sunDot, 8.0) * (1.0 - cloudDensity * 0.6) * 0.55;
+                    vec3 litCloud = mix(cloudShadow, cloudColor, clamp(1.0 - selfShadow * 0.75 + 0.35, 0.0, 1.0));
+                    litCloud += vec3(1.0, 0.96, 0.88) * silverLining;
+
+                    vec3 finalColor = mix(sky, litCloud, cloudDensity * 0.88);
+                    finalColor += vec3(1.0, 0.93, 0.82) * pow(sunDot, 42.0) * 1.25;
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `
+        });
+
+        const skySphere = new THREE.Mesh(new THREE.SphereGeometry(220, 48, 48), skyMat);
+        scene.add(skySphere);
+
+        /* ============================================================================
+           7. НАСТОЯЩИЕ КУЧЕВЫЕ 3D-ОБЛАКА (ПРОЦЕДУРНЫЙ WORLEY/FBM ОБЪЁМ БЕЗ ЖЁСТКИХ ШАРОВ)
+           ============================================================================ */
+        const clouds3DGroup = new THREE.Group();
+        scene.add(clouds3DGroup);
+
+        const cloud3DUniforms = {
+            uTime: { value: 0.0 },
+            uTopColor: { value: skyThemes[0].cloudColor.clone() },
+            uBottomColor: { value: skyThemes[0].cloudShadow.clone() },
+            uSunDir: { value: new THREE.Vector3(0.6, 0.75, -0.5).normalize() },
+            uCloudAtlas: { value: null }
+        };
+
+        /**
+         * Генерирует высокодетализированный текстурный атлас 2x2 настоящих кучевых облаков
+         * методом многооктавного фрактального шума (Perlin + Billow Worley FBM) и карты нормалей/толщины:
+         * - R: оптическая плотность (Beer-Lambert thickness)
+         * - G: освещённость сверху/сбоку (Self-shadowing normal Y/X)
+         * - B: мелкомасштабная пушистая эрозия краёв (Wispy edge detail)
+         * - A: мягкая кучевая маска без единого жёсткого круга
+         */
+        function generateRealisticCumulusAtlas() {
+            const size = 512;
+            const half = size / 2;
+            const cvs = document.createElement('canvas');
+            cvs.width = size;
+            cvs.height = size;
+            const ctx = cvs.getContext('2d');
+            const imgData = ctx.createImageData(size, size);
+            const data = imgData.data;
+
+            // Быстрый детерминированный 2D градиентный/хэш шум
+            function hash2(x, y, seed) {
+                let h = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453123;
+                return h - Math.floor(h);
+            }
+
+            function smoothNoise(x, y, seed) {
+                const ix = Math.floor(x);
+                const iy = Math.floor(y);
+                const fx = x - ix;
+                const fy = y - iy;
+                const ux = fx * fx * (3.0 - 2.0 * fx);
+                const uy = fy * fy * (3.0 - 2.0 * fy);
+
+                const a = hash2(ix, iy, seed);
+                const b = hash2(ix + 1, iy, seed);
+                const c = hash2(ix, iy + 1, seed);
+                const d = hash2(ix + 1, iy + 1, seed);
+
+                return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+            }
+
+            // Фрактальный кучевой шум (Billow + FBM, 6 октав)
+            function cumulusFBM(x, y, seed) {
+                let val = 0.0;
+                let amp = 0.52;
+                let freq = 1.0;
+                for (let o = 0; o < 6; o++) {
+                    const n = smoothNoise(x * freq, y * freq, seed + o * 13.3);
+                    const billow = 1.0 - Math.abs(n * 2.0 - 1.0);
+                    val += amp * (n * 0.55 + billow * 0.45);
+                    freq *= 2.08;
+                    amp *= 0.49;
+                }
+                return val;
+            }
+
+            // Генерируем 4 уникальных кучевых кластера в квадрантах атласа 2x2
+            for (let qy = 0; qy < 2; qy++) {
+                for (let qx = 0; qx < 2; qx++) {
+                    const seed = (qy * 2 + qx + 1) * 47.19;
+                    // Набор внутренних «центров кучевых шапок» внутри одного спрайта, чтобы форма была сложной, а не круглой
+                    const lobes = [
+                        { cx: 0.0, cy: -0.04, rx: 0.58, ry: 0.52, w: 1.0 },
+                        { cx: -0.26, cy: 0.08, rx: 0.48, ry: 0.42, w: 0.88 },
+                        { cx: 0.27, cy: 0.09, rx: 0.46, ry: 0.42, w: 0.86 },
+                        { cx: -0.12, cy: -0.22, rx: 0.45, ry: 0.40, w: 0.92 },
+                        { cx: 0.15, cy: -0.19, rx: 0.43, ry: 0.39, w: 0.88 },
+                        { cx: 0.0, cy: 0.20, rx: 0.66, ry: 0.34, w: 0.78 }
+                    ];
+
+                    for (let py = 0; py < half; py++) {
+                        for (let px = 0; px < half; px++) {
+                            const nx = (px / half) * 2.0 - 1.0; // -1..1
+                            const ny = (py / half) * 2.0 - 1.0; // -1..1 (верх = -1, низ = +1)
+
+                            // Определяем базовую форму сложного кучевого облака из нескольких перекрывающихся шапок
+                            let shapeField = 0.0;
+                            for (let l = 0; l < lobes.length; l++) {
+                                const lb = lobes[l];
+                                const dx = (nx - lb.cx) / lb.rx;
+                                const dy = (ny - lb.cy) / lb.ry;
+                                const d2 = dx * dx + dy * dy;
+                                if (d2 < 1.0) {
+                                    const falloff = (1.0 - d2) * (1.0 - d2) * lb.w;
+                                    if (falloff > shapeField) shapeField = falloff;
+                                }
+                            }
+
+                            // Гарантируем полный ноль на границах тайла, чтобы никогда не было квадратных рамок
+                            const borderDist = Math.max(Math.abs(nx), Math.abs(ny));
+                            const borderFade = 1.0 - Math.pow(Math.max(0.0, (borderDist - 0.65) / 0.35), 2.0);
+                            shapeField *= Math.max(0.0, borderFade);
+
+                            if (shapeField <= 0.001) continue;
+
+                            // Многомасштабная турбулентность для рваных реалистичных краёв
+                            const fbmLow = cumulusFBM((nx + 1.5) * 2.4, (ny + 1.5) * 2.4, seed);
+                            const fbmHigh = cumulusFBM((nx + 2.5) * 5.8, (ny + 2.5) * 5.8, seed + 99.1);
+
+                            // Эрозия краёв по методу Horizon Zero Dawn / Unity HDRP Clouds
+                            const rawDensity = shapeField * 1.35 + (fbmLow - 0.48) * 0.68 + (fbmHigh - 0.5) * 0.28;
+                            const density = Math.max(0.0, Math.min(1.0, (rawDensity - 0.22) / 0.62));
+                            const softAlpha = Math.pow(density, 1.15);
+
+                            if (softAlpha <= 0.002) continue;
+
+                            // Расчёт локального градиента для объёмного самозатенения (верх светлее, низ темнее + рельеф клубов)
+                            const fbmAbove = cumulusFBM((nx + 1.5) * 2.4, (ny - 0.08 + 1.5) * 2.4, seed);
+                            const bumpLight = 0.5 + (fbmLow - fbmAbove) * 2.4;
+                            const verticalGrad = Math.max(0.0, Math.min(1.0, (0.65 - ny * 0.55) * 0.72 + bumpLight * 0.28));
+
+                            const gx = qx * half + px;
+                            const gy = qy * half + py;
+                            const idx = (gy * size + gx) * 4;
+
+                            data[idx] = Math.round(density * 255);       // R: оптическая толщина
+                            data[idx + 1] = Math.round(verticalGrad * 255); // G: карта объёмного света и клубов
+                            data[idx + 2] = Math.round(fbmHigh * 255);      // B: микро-детализация
+                            data[idx + 3] = Math.round(softAlpha * 255);    // A: мягкая кучевая прозрачность
+                        }
+                    }
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+            const tex = new THREE.CanvasTexture(cvs);
+            tex.wrapS = THREE.ClampToEdgeWrapping;
+            tex.wrapT = THREE.ClampToEdgeWrapping;
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        cloud3DUniforms.uCloudAtlas.value = generateRealisticCumulusAtlas();
+
+        // Шейдер объёмных облачных слоёв с законом Бера-Паудера, серебристой кромкой и мягким дыханием ветра
+        const volumetricCloudSpriteMat = new THREE.ShaderMaterial({
+            uniforms: cloud3DUniforms,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            vertexShader: `
+                attribute vec2 aAtlasOffset;
+                attribute float aShadeBias;
+                attribute float aPhase;
+
+                varying vec2 vUv;
+                varying vec2 vAtlasOffset;
+                varying float vShadeBias;
+                varying vec3 vWorldPos;
+
+                uniform float uTime;
+
+                void main() {
+                    vUv = uv;
+                    vAtlasOffset = aAtlasOffset;
+                    vShadeBias = aShadeBias;
+
+                    // Лёгкое органическое колыхание каждого облачного слоя на ветру
+                    vec3 pos = position;
+                    pos.x += sin(uTime * 0.45 + aPhase) * 0.18;
+                    pos.y += cos(uTime * 0.35 + aPhase * 1.3) * 0.12;
+
+                    vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
+                    vWorldPos = worldPosition.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D uCloudAtlas;
+                uniform vec3 uTopColor;
+                uniform vec3 uBottomColor;
+                uniform vec3 uSunDir;
+                uniform float uTime;
+
+                varying vec2 vUv;
+                varying vec2 vAtlasOffset;
+                varying float vShadeBias;
+                varying vec3 vWorldPos;
+
+                void main() {
+                    // Выбираем нужный квадрант из атласа 2x2 с лёгким внутренним дрейфом микро-деталей
+                    vec2 atlasUV = vAtlasOffset + clamp(vUv, 0.01, 0.99) * 0.5;
+                    vec4 sampleData = texture2D(uCloudAtlas, atlasUV);
+
+                    float thickness = sampleData.r;
+                    float internalLight = sampleData.g;
+                    float microWisp = sampleData.b;
+                    float alpha = sampleData.a;
+
+                    // Дополнительная живая эрозия самых тонких краёв облака во времени
+                    float edgeErode = smoothstep(0.04, 0.22, alpha + (microWisp - 0.5) * 0.08);
+                    float finalAlpha = alpha * edgeErode * 0.88;
+
+                    if (finalAlpha < 0.01) discard;
+
+                    // Закон Бера — Паудера (Beer-Powder Law) для реалистичного рассеивания света в толще облака
+                    float beer = exp(-thickness * 1.45);
+                    float powder = 1.0 - exp(-thickness * 2.9);
+                    float lightEnergy = clamp(internalLight * 0.72 + vShadeBias * 0.28 + beer * powder * 0.35, 0.0, 1.0);
+
+                    vec3 cloudCol = mix(uBottomColor, uTopColor, smoothstep(0.12, 0.92, lightEnergy));
+
+                    // Серебристое свечение тонких краёв (Silver Lining) при взгляде в сторону солнца
+                    vec3 viewDir = normalize(vWorldPos - cameraPosition);
+                    float sunScatter = max(dot(viewDir, uSunDir), 0.0);
+                    float silver = pow(sunScatter, 6.0) * (1.0 - thickness * 0.65) * 0.48;
+                    cloudCol += vec3(1.0, 0.97, 0.9) * silver;
+
+                    gl_FragColor = vec4(cloudCol, finalAlpha);
+                }
+            `
+        });
+
+        const cloudClusters = [];
+        const allCloudBillboards = [];
+
+        /**
+         * Создаёт многослойное 3D кучевое облако из объёмных FBM-слоёв без единой сферы
+         */
+        function createRealisticCumulusCluster(layerCount, width, height, depth, baseScale) {
+            const cluster = new THREE.Group();
+
+            for (let i = 0; i < layerCount; i++) {
+                const planeGeo = new THREE.PlaneGeometry(1, 1);
+
+                // Случайный выбор одного из 4 процедурных кучевых профилей в атласе 2x2
+                const qx = (i % 2) * 0.5;
+                const qy = (Math.floor(i / 2) % 2) * 0.5;
+
+                const normY = (i / Math.max(1, layerCount - 1));
+                const rx = (Math.random() - 0.5) * width;
+                const ry = (normY - 0.38) * height;
+                const rz = (Math.random() - 0.5) * depth;
+
+                // Верхние шапки кучевого облака получают больше солнечного света, основание — в мягкой тени
+                const shadeBias = THREE.MathUtils.clamp(normY * 0.85 + 0.15, 0.0, 1.0);
+                const phase = Math.random() * Math.PI * 2;
+
+                const count = planeGeo.attributes.position.count;
+                const atlasOffsets = new Float32Array(count * 2);
+                const shadeBiases = new Float32Array(count);
+                const phases = new Float32Array(count);
+
+                for (let v = 0; v < count; v++) {
+                    atlasOffsets[v * 2] = qx;
+                    atlasOffsets[v * 2 + 1] = qy;
+                    shadeBiases[v] = shadeBias;
+                    phases[v] = phase;
+                }
+
+                planeGeo.setAttribute('aAtlasOffset', new THREE.BufferAttribute(atlasOffsets, 2));
+                planeGeo.setAttribute('aShadeBias', new THREE.BufferAttribute(shadeBiases, 1));
+                planeGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+                const spriteMesh = new THREE.Mesh(planeGeo, volumetricCloudSpriteMat);
+                spriteMesh.position.set(rx, ry, rz);
+
+                const s = baseScale * (0.85 + Math.random() * 0.55) * (1.15 - Math.abs(normY - 0.45) * 0.45);
+                spriteMesh.scale.set(s * 1.45, s * 1.05, 1.0);
+                spriteMesh.userData.rollOffset = (Math.random() - 0.5) * 0.35;
+
+                cluster.add(spriteMesh);
+                allCloudBillboards.push(spriteMesh);
+            }
+
+            return cluster;
+        }
+
+        // 1) Величественное кольцо кучевых 3D-облаков на разных эшелонах вокруг святилища
+        for (let i = 0; i < 26; i++) {
+            const angle = (i / 26) * Math.PI * 2 + (Math.random() - 0.5) * 0.22;
+            const radius = 22 + Math.random() * 46;
+            const yPos = -6.5 + (Math.random() - 0.32) * 16;
+
+            const cluster = createRealisticCumulusCluster(
+                11 + Math.floor(Math.random() * 6),
+                6.5, 3.2, 5.5,
+                7.2 + Math.random() * 4.5
+            );
+            cluster.position.set(Math.cos(angle) * radius, yPos, Math.sin(angle) * radius);
+
+            cloudClusters.push({
+                mesh: cluster,
+                angle,
+                radius,
+                baseY: yPos,
+                speed: 0.006 + Math.random() * 0.011,
+                bobPhase: Math.random() * Math.PI * 2
+            });
+            clouds3DGroup.add(cluster);
+        }
+
+        // 2) Густое Море Облаков (Unkai) под постаментом святилища
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2 + Math.random() * 0.3;
+            const radius = 8 + Math.random() * 38;
+            const yPos = -8.5 - Math.random() * 5.5;
+
+            const seaCluster = createRealisticCumulusCluster(
+                10,
+                8.5, 2.2, 8.5,
+                9.5 + Math.random() * 5.0
+            );
+            seaCluster.position.set(Math.cos(angle) * radius, yPos, Math.sin(angle) * radius);
+
+            cloudClusters.push({
+                mesh: seaCluster,
+                angle,
+                radius,
+                baseY: yPos,
+                speed: 0.004 + Math.random() * 0.007,
+                bobPhase: Math.random() * Math.PI * 2
+            });
+            clouds3DGroup.add(seaCluster);
+        }
+
+        /* ============================================================================
+           8. ОСВЕЩЕНИЕ, КАРТА ОКРУЖЕНИЯ И ДИНАМИЧЕСКИЕ МЯГКИЕ ТЕНИ
+           ============================================================================ */
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+        const envScene = new THREE.Scene();
+        envScene.add(new THREE.Mesh(new THREE.SphereGeometry(150, 24, 24), skyMat.clone()));
+        scene.environment = pmremGenerator.fromScene(envScene).texture;
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x3b6db3, 0.72);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaee, 3.3);
+        dirLight.position.set(12, 22, -11);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 1.0;
+        dirLight.shadow.camera.far = 55;
+        dirLight.shadow.camera.left = -14;
+        dirLight.shadow.camera.right = 14;
+        dirLight.shadow.camera.top = 14;
+        dirLight.shadow.camera.bottom = -14;
+        dirLight.shadow.bias = -0.0003;
+        dirLight.shadow.normalBias = 0.015;
+        scene.add(dirLight);
+
+        /* ============================================================================
+           9. ПАРЯЩИЕ 3D-ЛЕПЕСТКИ ПОДСОЛНУХА
+           ============================================================================ */
+        const petalCount = 150;
+        const petalGeo = new THREE.BufferGeometry();
+        const petalPos = new Float32Array(petalCount * 3);
+        for (let i = 0; i < petalCount * 3; i += 3) {
+            petalPos[i] = (Math.random() - 0.5) * 42;
+            petalPos[i + 1] = Math.random() * 22 - 3;
+            petalPos[i + 2] = (Math.random() - 0.5) * 42;
+        }
+        petalGeo.setAttribute('position', new THREE.BufferAttribute(petalPos, 3));
+
+        const ptCvs = document.createElement('canvas');
+        ptCvs.width = 64;
+        ptCvs.height = 64;
+        const ptCtx = ptCvs.getContext('2d');
+        const ptGrad = ptCtx.createRadialGradient(32, 32, 2, 32, 32, 26);
+        ptGrad.addColorStop(0, '#fff380');
+        ptGrad.addColorStop(0.6, '#ffbb11');
+        ptGrad.addColorStop(1, 'rgba(255, 160, 0, 0)');
+        ptCtx.fillStyle = ptGrad;
+        ptCtx.beginPath();
+        ptCtx.ellipse(32, 32, 9, 22, 0, 0, Math.PI * 2);
+        ptCtx.fill();
+
+        const petals = new THREE.Points(
+            petalGeo,
+            new THREE.PointsMaterial({
+                map: new THREE.CanvasTexture(ptCvs),
+                size: 0.58,
+                transparent: true,
+                opacity: 0.9,
+                depthWrite: false
+            })
+        );
+        scene.add(petals);
+
+        /* ============================================================================
+           10. ГЕНЕРАЦИЯ PBR-ТЕКСТУР ВЫСОКОГО РАЗРЕШЕНИЯ (1024x1024)
+           ============================================================================ */
+        function createDarkWoodTexture(drawGrid) {
+            const size = 1024;
+            const cvs = document.createElement('canvas');
+            cvs.width = size;
+            cvs.height = size;
+            const ctx = cvs.getContext('2d');
+
+            ctx.fillStyle = '#240a02';
+            ctx.fillRect(0, 0, size, size);
+
+            ctx.globalAlpha = 0.085;
+            for (let i = 0; i < 3400; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#000000' : '#4a1505';
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const w = Math.random() * 220 + 50;
+                const h = Math.random() * 3 + 1;
+                ctx.fillRect(x, y, w, h);
+            }
+
+            if (drawGrid) {
+                const getCX = (val) => ((val + 5.25) / 10.5) * size;
+                const getCY = (val) => ((5.25 - val) / 10.5) * size;
+
+                ctx.globalAlpha = 0.45;
+                ctx.strokeStyle = '#d49b5e';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(48, 48, size - 96, size - 96);
+
+                ctx.globalAlpha = 0.88;
+                ctx.strokeStyle = '#c68c53';
+                ctx.lineWidth = 14;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowColor = 'rgba(0,0,0,0.92)';
+                ctx.shadowBlur = 7;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+
+                ctx.beginPath();
+                const drawn = new Set();
+                for (let i = 0; i < 9; i++) {
+                    for (let j of adjacency[i]) {
+                        const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+                        if (!drawn.has(key)) {
+                            drawn.add(key);
+                            ctx.moveTo(getCX(nodes[i].x), getCY(nodes[i].z));
+                            ctx.lineTo(getCX(nodes[j].x), getCY(nodes[j].z));
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                ctx.strokeStyle = '#e6b88a';
+                ctx.lineWidth = 6;
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.stroke();
+
+                for (let i = 0; i < 9; i++) {
+                    ctx.fillStyle = '#e6b88a';
+                    ctx.beginPath();
+                    ctx.arc(getCX(nodes[i].x), getCY(nodes[i].z), 22, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'rgba(20, 5, 0, 0.92)';
+                    ctx.beginPath();
+                    ctx.arc(getCX(nodes[i].x), getCY(nodes[i].z), 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            ctx.globalAlpha = 1.0;
+            const grad = ctx.createRadialGradient(size / 2, size / 2, size * 0.3, size / 2, size / 2, size * 0.8);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+
+            const tex = new THREE.CanvasTexture(cvs);
+            if (renderer.capabilities.getMaxAnisotropy) {
+                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            }
+            return tex;
+        }
+
+        // Высокодетализированная текстура токарного полированного дерева для фигур (1024x1024, без резких полос)
+        function createFineTurnedWoodTexture(baseHex, grainHex1, grainHex2, ringTint) {
+            const size = 1024;
+            const cvs = document.createElement('canvas');
+            cvs.width = size;
+            cvs.height = size;
+            const ctx = cvs.getContext('2d');
+
+            ctx.fillStyle = baseHex;
+            ctx.fillRect(0, 0, size, size);
+
+            // Мягкие органические годовые слои древесины
+            ctx.globalAlpha = 0.14;
+            for (let i = 0; i < 90; i++) {
+                const xBase = (i / 90) * size;
+                ctx.beginPath();
+                ctx.moveTo(xBase, 0);
+                for (let y = 0; y <= size; y += 16) {
+                    const wave = Math.sin(y * 0.012 + i * 0.7) * 14 + Math.cos(y * 0.028 - i) * 6;
+                    ctx.lineTo(xBase + wave, y);
+                }
+                ctx.lineWidth = 2.5 + (i % 4) * 1.5;
+                ctx.strokeStyle = i % 2 === 0 ? grainHex1 : grainHex2;
+                ctx.stroke();
+            }
+
+            // Тончайшие микро-поры полированного самшита / палисандра
+            ctx.globalAlpha = 0.12;
+            for (let i = 0; i < 6500; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? grainHex1 : ringTint;
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                ctx.fillRect(x, y, 1.2 + Math.random() * 1.5, 25 + Math.random() * 85);
+            }
+
+            const tex = new THREE.CanvasTexture(cvs);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 1);
+            if (renderer.capabilities.getMaxAnisotropy) {
+                tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            }
+            return tex;
+        }
+
+        const boardTexTop = createDarkWoodTexture(true);
+        boardTexTop.repeat.set(1 / 10.5, 1 / 10.5);
+        boardTexTop.offset.set(0.5, 0.5);
+
+        const boardTexSide = createDarkWoodTexture(false);
+        boardTexSide.wrapS = THREE.RepeatWrapping;
+        boardTexSide.wrapT = THREE.RepeatWrapping;
+
+        const p1Tex = createFineTurnedWoodTexture('#f4ead8', '#d8be98', '#e5cfaecc', '#c2a278');
+        const p2Tex = createFineTurnedWoodTexture('#3b1709', '#1c0701', '#52220f', '#240b03');
+
+        /* ============================================================================
+           11. ИГРОВАЯ ДОСКА, КАМЕННЫЙ ПОСТАМЕНТ И ЖИВЫЕ 3D-ПОДСОЛНУХИ В ВАЗОНАХ
+           ============================================================================ */
+        const boardGroup = new THREE.Group();
+        scene.add(boardGroup);
+
+        const shape = new THREE.Shape();
+        const bW = 10.5, bR = 0.8;
+        shape.moveTo(-bW / 2 + bR, -bW / 2);
+        shape.lineTo(bW / 2 - bR, -bW / 2);
+        shape.quadraticCurveTo(bW / 2, -bW / 2, bW / 2, -bW / 2 + bR);
+        shape.lineTo(bW / 2, bW / 2 - bR);
+        shape.quadraticCurveTo(bW / 2, bW / 2, bW / 2 - bR, bW / 2);
+        shape.lineTo(-bW / 2 + bR, bW / 2);
+        shape.quadraticCurveTo(-bW / 2, bW / 2, -bW / 2, bW / 2 - bR);
+        shape.lineTo(-bW / 2, -bW / 2 + bR);
+        shape.quadraticCurveTo(-bW / 2, -bW / 2, -bW / 2 + bR, -bW / 2);
+
+        const bMatTop = new THREE.MeshPhysicalMaterial({
+            map: boardTexTop,
+            bumpMap: boardTexTop,
+            bumpScale: 0.008,
+            metalness: 0.1,
+            roughness: 0.18,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.05
+        });
+        const bMatSide = new THREE.MeshPhysicalMaterial({
+            map: boardTexSide,
+            metalness: 0.1,
+            roughness: 0.22,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.06
+        });
+
+        const boardMesh = new THREE.Mesh(
+            new THREE.ExtrudeGeometry(shape, {
+                depth: 0.6,
+                bevelEnabled: true,
+                bevelSegments: 6,
+                steps: 1,
+                bevelSize: 0.12,
+                bevelThickness: 0.12
+            }).translate(0, -0.1, 0).rotateX(Math.PI / 2),
+            [bMatTop, bMatSide]
+        );
+        boardMesh.receiveShadow = true;
+        boardMesh.castShadow = true;
+        boardGroup.add(boardMesh);
+
+        // Благородный тёмно-сизый мрамор с чёткими гранями (не пересвечивается на солнце и контрастирует с облаками)
+        const pedestalMat = new THREE.MeshStandardMaterial({
+            color: 0x6e829c,      // Глубокий небесно-мраморный оттенок вместо слепящего белого
+            roughness: 0.42,
+            metalness: 0.18,
+            flatShading: true     // Делает каждую из 8 граней фигуры чёткой и объёмной по свету/тени
+        });
+        const goldTrimMat = new THREE.MeshStandardMaterial({
+            color: 0xffd266,
+            metalness: 0.94,
+            roughness: 0.18
+        });
+
+        // Основная 8-гранная фигура под столом
+        const baseStep = new THREE.Mesh(new THREE.CylinderGeometry(7.2, 8.1, 0.75, 8), pedestalMat);
+        baseStep.position.y = -0.98;
+        baseStep.rotation.y = Math.PI / 8;
+        baseStep.receiveShadow = true;
+        baseStep.castShadow = true;
+        boardGroup.add(baseStep);
+
+        // Нижняя ступенька-основание с золотым кантом для красивого 3D-силуэта под столом
+        const lowerPedestal = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 4.2, 1.1, 8), pedestalMat);
+        lowerPedestal.position.y = -1.90;
+        lowerPedestal.rotation.y = Math.PI / 8;
+        lowerPedestal.receiveShadow = true;
+        lowerPedestal.castShadow = true;
+        boardGroup.add(lowerPedestal);
+
+        const goldHaloRing = new THREE.Mesh(
+            new THREE.TorusGeometry(8.35, 0.06, 18, 96).rotateX(Math.PI / 2),
+            goldTrimMat
+        );
+        goldHaloRing.position.y = -0.88;
+        boardGroup.add(goldHaloRing);
+
+        /* --- ЖИВЫЕ 3D-ПОДСОЛНУХИ В КАМЕННЫХ ВАЗОНАХ (СТРОГО ВЕРТИКАЛЬНО ВВЕРХ!) --- */
+        const sunflowers = [];
+        const stemGreenMat = new THREE.MeshStandardMaterial({ color: 0x2f6f31, roughness: 0.68 });
+        const leafGreenMat = new THREE.MeshStandardMaterial({ color: 0x388039, roughness: 0.6, side: THREE.DoubleSide });
+        const soilMat = new THREE.MeshStandardMaterial({ color: 0x231309, roughness: 0.95 });
+        const seedCoreMat = new THREE.MeshStandardMaterial({ color: 0x261205, roughness: 0.88 });
+        const pollenRingMat = new THREE.MeshStandardMaterial({ color: 0xd98a14, roughness: 0.65 });
+        const sunflowerPetalMat = new THREE.MeshStandardMaterial({
+            color: 0xffc812,
+            emissive: 0x3b2100,
+            roughness: 0.36,
+            side: THREE.DoubleSide
+        });
+
+        // Геометрия одного изогнутого лепестка подсолнуха
+        function createCurvedPetalGeometry() {
+            const pShape = new THREE.Shape();
+            pShape.moveTo(0, 0);
+            pShape.quadraticCurveTo(0.065, 0.14, 0.045, 0.30);
+            pShape.quadraticCurveTo(0.018, 0.38, 0, 0.42);
+            pShape.quadraticCurveTo(-0.018, 0.38, -0.045, 0.30);
+            pShape.quadraticCurveTo(-0.065, 0.14, 0, 0);
+
+            const geo = new THREE.ShapeGeometry(pShape, 8);
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const y = pos.getY(i);
+                const arch = Math.sin((y / 0.42) * Math.PI) * 0.028;
+                pos.setZ(i, arch);
+            }
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // Геометрия резного листа на стебле
+        function createHeartLeafGeometry() {
+            const lShape = new THREE.Shape();
+            lShape.moveTo(0, 0);
+            lShape.quadraticCurveTo(0.18, 0.06, 0.14, 0.25);
+            lShape.quadraticCurveTo(0.06, 0.38, 0, 0.46);
+            lShape.quadraticCurveTo(-0.06, 0.38, -0.14, 0.25);
+            lShape.quadraticCurveTo(-0.18, 0.06, 0, 0);
+
+            const geo = new THREE.ShapeGeometry(lShape, 6);
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const y = pos.getY(i);
+                pos.setZ(i, -Math.pow(y / 0.46, 1.6) * 0.08);
+            }
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        const sharedPetalGeo = createCurvedPetalGeometry();
+        const sharedLeafGeo = createHeartLeafGeometry();
+
+        /**
+         * Создаёт один вертикально растущий 3D-подсолнух с корнем в точке (0,0,0),
+         * изогнутым стеблем, листьями и пышной головкой, повернутой вокруг оси Y к центру доски
+         */
+        function createSingleUprightSunflower(stemHeight, curveBendX, curveBendZ, facingYaw, headScale = 1.0) {
+            const rootPivot = new THREE.Group();
+
+            // 1. Органический изогнутый стебель (растёт строго вверх от Y=0 до Y=stemHeight)
+            const stemCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(curveBendX * 0.45, stemHeight * 0.35, curveBendZ * 0.45),
+                new THREE.Vector3(curveBendX, stemHeight * 0.72, curveBendZ),
+                new THREE.Vector3(curveBendX * 0.85, stemHeight, curveBendZ * 0.85)
+            ]);
+            const stemGeo = new THREE.TubeGeometry(stemCurve, 20, 0.048 * headScale, 10, false);
+            const stemMesh = new THREE.Mesh(stemGeo, stemGreenMat);
+            stemMesh.castShadow = true;
+            stemMesh.receiveShadow = true;
+            rootPivot.add(stemMesh);
+
+            // 2. Листья вдоль стебля (с объёмным наклоном, чтобы не смотрелись плоской полоской)
+            const leafHeights = [0.32, 0.56];
+            leafHeights.forEach((t, idx) => {
+                const pt = stemCurve.getPointAt(t);
+                const leaf = new THREE.Mesh(sharedLeafGeo, leafGreenMat);
+                leaf.position.copy(pt);
+                leaf.rotation.order = 'YXZ';
+                leaf.rotation.y = facingYaw + (idx === 0 ? 1.1 : -1.1);
+                leaf.rotation.x = 0.45; // Естественный изгиб листа вверх-вбок, а не плашмя
+                leaf.rotation.z = idx === 0 ? -0.35 : 0.35;
+                const ls = (0.85 - idx * 0.12) * headScale;
+                leaf.scale.set(ls, ls, ls);
+                leaf.castShadow = true;
+                rootPivot.add(leaf);
+            });
+
+            // 3. Головка цветка на вершине стебля (повернута по горизонтали к центру и слегка к солнцу)
+            const topPt = stemCurve.getPointAt(1.0);
+            const headYawGroup = new THREE.Group();
+            headYawGroup.position.copy(topPt);
+            headYawGroup.rotation.y = facingYaw;
+
+            const headTiltGroup = new THREE.Group();
+            // Лёгкий естественный наклон головки подсолнуха к небу и доске (~28 градусов от горизонтали)
+            headTiltGroup.rotation.x = 0.48;
+            headTiltGroup.scale.set(headScale, headScale, headScale);
+
+            // Зелёная чашечка (Calyx) сзади диска
+            const calyx = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.18, 12), stemGreenMat);
+            calyx.rotation.x = -Math.PI / 2;
+            calyx.position.z = -0.06;
+            headTiltGroup.add(calyx);
+
+            // Тёмный диск семечек с пыльцовым кольцом
+            const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.25, 0.08, 28), seedCoreMat);
+            disc.rotation.x = Math.PI / 2;
+            disc.castShadow = true;
+            headTiltGroup.add(disc);
+
+            const pollenRing = new THREE.Mesh(
+                new THREE.TorusGeometry(0.21, 0.025, 10, 28),
+                pollenRingMat
+            );
+            pollenRing.position.z = 0.04;
+            headTiltGroup.add(pollenRing);
+
+            // Два пышных ряда по 22 золотых лепестка со смещением
+            for (let ringIdx = 0; ringIdx < 2; ringIdx++) {
+                const petalCountRing = 22;
+                const radiusOffset = ringIdx === 0 ? 0.23 : 0.21;
+                const zOffset = ringIdx === 0 ? 0.015 : -0.01;
+                const angleShift = ringIdx * (Math.PI / petalCountRing);
+
+                for (let i = 0; i < petalCountRing; i++) {
+                    const a = (i / petalCountRing) * Math.PI * 2 + angleShift;
+                    const pHolder = new THREE.Group();
+                    pHolder.rotation.z = a;
+
+                    const pMesh = new THREE.Mesh(sharedPetalGeo, sunflowerPetalMat);
+                    pMesh.position.set(0, radiusOffset, zOffset);
+                    pMesh.rotation.x = ringIdx === 0 ? -0.12 : -0.24;
+                    pMesh.scale.set(1.0, ringIdx === 0 ? 1.0 : 0.92, 1.0);
+                    pMesh.castShadow = true;
+
+                    pHolder.add(pMesh);
+                    headTiltGroup.add(pHolder);
+                }
+            }
+
+            headYawGroup.add(headTiltGroup);
+            rootPivot.add(headYawGroup);
+            return rootPivot;
+        }
+
+        // Угловые резные вазоны святилища с кустами из 3 живых подсолнухов в каждом
+        const planterPositions = [
+            [-5.65, -0.75, -5.65],
+            [5.65, -0.75, -5.65],
+            [-5.65, -0.75, 5.65],
+            [5.65, -0.75, 5.65]
+        ];
+
+        planterPositions.forEach(([px, py, pz], cornerIdx) => {
+            const planterGroup = new THREE.Group();
+            planterGroup.position.set(px, py, pz);
+
+			// Круглая каменная чаша-вазон (32 грани вместо 8)
+            const potMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.86, 0.64, 0.60, 32), pedestalMat);
+            potMesh.position.y = -0.20; // Верх вазона теперь на Y = 0.10
+            potMesh.castShadow = true;
+            potMesh.receiveShadow = true;
+            planterGroup.add(potMesh);
+
+            // Золотой обод вазона
+            const potRim = new THREE.Mesh(
+                new THREE.TorusGeometry(0.86, 0.055, 16, 48).rotateX(Math.PI / 2),
+                goldTrimMat
+            );
+            potRim.position.y = 0.13;
+            planterGroup.add(potRim);
+
+            // Выпуклая тёмная земля (выше крышки вазона, без наложения плоскостей!)
+            const soilMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.81, 0.81, 0.06, 32), soilMat);
+            soilMesh.position.y = 0.11; // Верх земли на Y = 0.14 (никакого Z-fighting с вазоном)
+            soilMesh.receiveShadow = true;
+            planterGroup.add(soilMesh);
+
+            // Горизонтальный угол поворота к центру доски (только вокруг вертикальной оси Y!)
+            const yawToCenter = Math.atan2(-px, -pz);
+
+            // Высаживаем 3 подсолнуха разной высоты в каждый вазон
+            const bouquetConfigs = [
+                { ox: 0.0, oz: 0.0, h: 1.95, bx: 0.06, bz: 0.05, yaw: yawToCenter, scale: 1.0 },
+                { ox: -0.28, oz: 0.22, h: 1.52, bx: -0.14, bz: 0.12, yaw: yawToCenter + 0.35, scale: 0.82 },
+                { ox: 0.26, oz: -0.22, h: 1.32, bx: 0.15, bz: -0.12, yaw: yawToCenter - 0.38, scale: 0.74 }
+            ];
+
+            bouquetConfigs.forEach((cfg, bIdx) => {
+                const sf = createSingleUprightSunflower(cfg.h, cfg.bx, cfg.bz, cfg.yaw, cfg.scale);
+                sf.position.set(cfg.ox, 0.11, cfg.oz);
+                planterGroup.add(sf);
+                sunflowers.push({
+                    mesh: sf,
+                    phase: cornerIdx * 1.3 + bIdx * 0.9
+                });
+            });
+
+            boardGroup.add(planterGroup);
+        });
+
+        // Золотые кольца на 9 узлах доски и цилиндры для рейкаста
+        const goldMat = new THREE.MeshStandardMaterial({
+            color: 0xffd700,
+            metalness: 1.0,
+            roughness: 0.18
+        });
+        const rings = [];
+        const hitboxes = [];
+        const ringGeo = new THREE.TorusGeometry(0.42, 0.045, 18, 64).rotateX(Math.PI / 2);
+        const hitboxGeo = new THREE.CylinderGeometry(1.22, 1.22, 0.6, 16);
+        const hitboxMat = new THREE.MeshBasicMaterial({ visible: false });
+
+        for (let i = 0; i < 9; i++) {
+            const ring = new THREE.Mesh(ringGeo, goldMat.clone());
+            ring.position.copy(nodes[i]);
+            ring.position.y = 0.025;
+            ring.receiveShadow = true;
+            boardGroup.add(ring);
+            rings.push(ring);
+
+            const hit = new THREE.Mesh(hitboxGeo, hitboxMat);
+            hit.position.copy(nodes[i]);
+            hit.position.y = 0.25;
+            hit.userData = { index: i };
+            boardGroup.add(hit);
+            hitboxes.push(hit);
+        }
+
+        let winBeamMesh = null;
+        function spawnWinningBeam(lineIndices) {
+            if (winBeamMesh) {
+                boardGroup.remove(winBeamMesh);
+                winBeamMesh = null;
+            }
+            const start = nodes[lineIndices[0]].clone();
+            const end = nodes[lineIndices[2]].clone();
+            start.y = 0.52;
+            end.y = 0.52;
+
+            const dist = start.distanceTo(end);
+            const geo = new THREE.CylinderGeometry(0.08, 0.08, dist + 0.6, 16);
+            geo.rotateX(Math.PI / 2);
+
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffe885,
+                transparent: true,
+                opacity: 0.9
+            });
+            winBeamMesh = new THREE.Mesh(geo, mat);
+            winBeamMesh.position.copy(start).lerp(end, 0.5);
+            winBeamMesh.lookAt(end);
+            boardGroup.add(winBeamMesh);
+
+            gsap.fromTo(winBeamMesh.scale, { x: 0.01, y: 0.01, z: 0.01 }, { x: 1, y: 1, z: 1, duration: 0.65, ease: 'back.out(1.7)' });
+        }
+
+        /* ============================================================================
+           12. ВЫСОКОДЕТАЛИЗИРОВАННЫЕ ТОКАРНЫЕ ФИГУРЫ (180 ТОЧЕК СПЛАЙНА × 96 СЕГМЕНТОВ)
+           ============================================================================ */
+        const p1Mat = new THREE.MeshPhysicalMaterial({
+            map: p1Tex,
+            bumpMap: p1Tex,
+            bumpScale: 0.008,
+            roughness: 0.34,
+            metalness: 0.02,
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.16
+        });
+        const p2Mat = new THREE.MeshPhysicalMaterial({
+            map: p2Tex,
+            bumpMap: p2Tex,
+            bumpScale: 0.008,
+            roughness: 0.34,
+            metalness: 0.02,
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.16
+        });
+
+        // Генерируем безупречно гладкую высокополигональную геометрию фигуры один раз и переиспользуем
+        function buildSmoothSovereignPieceGeometry() {
+            const controlPoints = [
+                new THREE.Vector2(0.00, 0.00),
+                new THREE.Vector2(0.43, 0.00),
+                new THREE.Vector2(0.44, 0.04),
+                new THREE.Vector2(0.41, 0.09),
+                new THREE.Vector2(0.39, 0.13),
+                new THREE.Vector2(0.34, 0.18),
+                new THREE.Vector2(0.26, 0.34),
+                new THREE.Vector2(0.19, 0.52),
+                new THREE.Vector2(0.165, 0.64),
+                new THREE.Vector2(0.20, 0.72),
+                new THREE.Vector2(0.295, 0.83),
+                new THREE.Vector2(0.325, 0.93),
+                new THREE.Vector2(0.285, 1.04),
+                new THREE.Vector2(0.19, 1.14),
+                new THREE.Vector2(0.11, 1.20),
+                new THREE.Vector2(0.13, 1.25),
+                new THREE.Vector2(0.08, 1.29),
+                new THREE.Vector2(0.00, 1.305)
+            ];
+
+            // Гладкая сплайновая интерполяция (180 точек профиля вместо 11 грубых отрезков!)
+            const spline = new THREE.SplineCurve(controlPoints);
+            const smoothProfile = spline.getPoints(180);
+            smoothProfile[0].x = 0.0;
+            smoothProfile[smoothProfile.length - 1].x = 0.0;
+
+            const geo = new THREE.LatheGeometry(smoothProfile, 96);
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        const sharedPieceBodyGeo = buildSmoothSovereignPieceGeometry();
+        const sharedBaseRingGeo = new THREE.TorusGeometry(0.425, 0.022, 20, 64).rotateX(Math.PI / 2);
+        const sharedCollarGeo1 = new THREE.TorusGeometry(0.174, 0.022, 20, 64).rotateX(Math.PI / 2);
+        const sharedCollarGeo2 = new THREE.TorusGeometry(0.185, 0.014, 16, 64).rotateX(Math.PI / 2);
+        const sharedTopCrownGeo = new THREE.SphereGeometry(0.068, 32, 24);
+
+        function createPieceHierarchy(player) {
+            const wrapper = new THREE.Group();
+            const flip = new THREE.Group();
+            const spin = new THREE.Group();
+            flip.add(spin);
+            wrapper.add(flip);
+
+            // 1. Гладкий точёный деревянный корпус
+            const woodMesh = new THREE.Mesh(sharedPieceBodyGeo, player === 1 ? p1Mat : p2Mat);
+            woodMesh.castShadow = true;
+            woodMesh.receiveShadow = true;
+            spin.add(woodMesh);
+
+            // 2. Нижний золотой обод у основания
+            const baseBezel = new THREE.Mesh(sharedBaseRingGeo, goldTrimMat);
+            baseBezel.position.y = 0.035;
+            baseBezel.castShadow = true;
+            spin.add(baseBezel);
+
+            // 3. Двойной золотой поясок на талии фигуры
+            const collarMain = new THREE.Mesh(sharedCollarGeo1, goldTrimMat);
+            collarMain.position.y = 0.64;
+            collarMain.castShadow = true;
+            spin.add(collarMain);
+
+            const collarSub = new THREE.Mesh(sharedCollarGeo2, goldTrimMat);
+            collarSub.position.y = 0.685;
+            spin.add(collarSub);
+
+            // 4. Золотая сферическая навершие-бусина на макушке (скрывает полюс UV-развёртки)
+            const topFinial = new THREE.Mesh(sharedTopCrownGeo, goldTrimMat);
+            topFinial.position.y = 1.285;
+            topFinial.scale.set(1.0, 0.68, 1.0);
+            topFinial.castShadow = true;
+            spin.add(topFinial);
+
+            return { wrapper, flip, spin, body: woodMesh };
+        }
+
+        /* ============================================================================
+           13. ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ (ПРОГУЛКА / ПОДСОЛНУХ / MINIMAX АБСОЛЮТ)
+           ============================================================================ */
+        function evaluateBoardState(b) {
+            for (const line of winLines) {
+                if (b[line[0]] === 2 && b[line[1]] === 2 && b[line[2]] === 2) return 100;
+                if (b[line[0]] === 1 && b[line[1]] === 1 && b[line[2]] === 1) return -100;
+            }
+            let score = 0;
+            if (b[4] === 2) score += 6;
+            if (b[4] === 1) score -= 6;
+            return score;
+        }
+
+        function getPossibleMovesForState(b, ph, pl) {
+            const moves = [];
+            if (ph === 1) {
+                for (let i = 0; i < 9; i++) {
+                    if (b[i] === 0) moves.push({ from: -1, to: i });
+                }
+            } else {
+                for (let i = 0; i < 9; i++) {
+                    if (b[i] === pl) {
+                        for (const adj of adjacency[i]) {
+                            if (b[adj] === 0) moves.push({ from: i, to: adj });
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function minimaxSearch(b, ph, pl, c1, c2, depth, alpha, beta) {
+            const evalScore = evaluateBoardState(b);
+            if (Math.abs(evalScore) === 100) {
+                return evalScore > 0 ? evalScore - (6 - depth) : evalScore + (6 - depth);
+            }
+            if (depth <= 0) return evalScore;
+
+            const moves = getPossibleMovesForState(b, ph, pl);
+            if (moves.length === 0) {
+                return pl === 2 ? -90 : 90;
+            }
+
+            if (pl === 2) {
+                let maxEval = -Infinity;
+                for (const m of moves) {
+                    const nextB = b.slice();
+                    let nextC1 = c1, nextC2 = c2;
+                    if (ph === 1) {
+                        nextB[m.to] = 2;
+                        nextC2++;
+                    } else {
+                        nextB[m.from] = 0;
+                        nextB[m.to] = 2;
+                    }
+                    const nextPh = (ph === 1 && nextC1 === 3 && nextC2 === 3) ? 2 : ph;
+                    const val = minimaxSearch(nextB, nextPh, 1, nextC1, nextC2, depth - 1, alpha, beta);
+                    maxEval = Math.max(maxEval, val);
+                    alpha = Math.max(alpha, val);
+                    if (beta <= alpha) break;
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (const m of moves) {
+                    const nextB = b.slice();
+                    let nextC1 = c1, nextC2 = c2;
+                    if (ph === 1) {
+                        nextB[m.to] = 1;
+                        nextC1++;
+                    } else {
+                        nextB[m.from] = 0;
+                        nextB[m.to] = 1;
+                    }
+                    const nextPh = (ph === 1 && nextC1 === 3 && nextC2 === 3) ? 2 : ph;
+                    const val = minimaxSearch(nextB, nextPh, 2, nextC1, nextC2, depth - 1, alpha, beta);
+                    minEval = Math.min(minEval, val);
+                    beta = Math.min(beta, val);
+                    if (beta <= alpha) break;
+                }
+                return minEval;
+            }
+        }
+
+        function computeAIMove() {
+            const moves = getPossibleMovesForState(board, phase, 2);
+            if (moves.length === 0) return null;
+
+            if (aiDifficulty === 'easy' && Math.random() < 0.65) {
+                return moves[Math.floor(Math.random() * moves.length)];
+            }
+
+            const searchDepth = aiDifficulty === 'hard' ? 6 : 3;
+            let bestScore = -Infinity;
+            let bestMoves = [];
+
+            for (const m of moves) {
+                const nextB = board.slice();
+                let nextC1 = p1Pieces, nextC2 = p2Pieces;
+                if (phase === 1) {
+                    nextB[m.to] = 2;
+                    nextC2++;
+                } else {
+                    nextB[m.from] = 0;
+                    nextB[m.to] = 2;
+                }
+                const nextPh = (phase === 1 && nextC1 === 3 && nextC2 === 3) ? 2 : phase;
+                const score = minimaxSearch(nextB, nextPh, 1, nextC1, nextC2, searchDepth, -Infinity, Infinity);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMoves = [m];
+                } else if (score === bestScore) {
+                    bestMoves.push(m);
+                }
+            }
+
+            return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        }
+
+        function triggerAITurnIfNeeded() {
+            if (gameState !== 'playing' || playMode !== 'ai' || turn !== 2 || isAnimating) return;
+
+            isAnimating = true;
+            setTimeout(() => {
+                if (gameState !== 'playing') {
+                    isAnimating = false;
+                    return;
+                }
+                const move = computeAIMove();
+                isAnimating = false;
+                if (!move) return;
+
+                if (phase === 1) {
+                    executeSlotAction(move.to, true);
+                } else {
+                    executeSlotAction(move.from, true);
+                    setTimeout(() => {
+                        if (gameState === 'playing') {
+                            executeSlotAction(move.to, true);
+                        }
+                    }, 420);
+                }
+            }, 520);
+        }
+
+        /* ============================================================================
+           14. ОБРАБОТКА ВВОДА (МЫШЬ + СЕНСОРНЫЙ ЭКРАН ТЕЛЕФОНА)
+           ============================================================================ */
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2(-1, -1);
+        let isDragging = false;
+        let downX = undefined;
+        let downY = undefined;
+        let lastSentHover = -1;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!e.isPrimary) return;
+            downX = e.clientX;
+            downY = e.clientY;
+            isDragging = false;
+            pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!e.isPrimary) return;
+            if (typeof downX !== 'undefined') {
+                if (Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) {
+                    isDragging = true;
+                }
+            }
+            pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            if (!e.isPrimary || gameState !== 'playing' || isAnimating) {
+                downX = undefined;
+                return;
+            }
+            if (playMode === 'ai' && turn === 2) {
+                downX = undefined;
+                return;
+            }
+            if (playMode === 'online' && turn !== myOnlineSide) {
+                downX = undefined;
+                return;
+            }
+
+            if (!isDragging) {
+                pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+                pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObjects(hitboxes);
+                if (intersects.length > 0) {
+                    const idx = intersects[0].object.userData.index;
+                    executeSlotAction(idx, false);
+                } else if (selectedPiece) {
+                    deselectPiece();
+                }
+            }
+            downX = undefined;
+            downY = undefined;
+        });
+
+        function executeSlotAction(index, isRemoteOrAI = false) {
+            if (gameState !== 'playing' || isAnimating) return;
+
+            if (playMode === 'online' && !isRemoteOrAI) {
+                sendNetPacket({ type: 'slot_click', index });
+            }
+
+            if (phase === 1) {
+                if (board[index] === 0) {
+                    board[index] = turn;
+                    if (turn === 1) p1Pieces++;
+                    else p2Pieces++;
+                    moveCounter++;
+                    spawnPiece(index);
+                } else {
+                    playWoodSfx('error');
+                }
+            } else {
+                if (selectedPiece === null) {
+                    if (board[index] === turn) {
+                        selectPiece(index);
+                    }
+                } else {
+                    if (index === selectedPiece.positionIndex) {
+                        deselectPiece();
+                    } else if (board[index] === turn) {
+                        deselectPiece();
+                        selectPiece(index);
+                    } else if (board[index] === 0 && adjacency[selectedPiece.positionIndex].includes(index)) {
+                        moveCounter++;
+                        movePiece(selectedPiece, index);
+                    } else {
+                        playWoodSfx('error');
+                        shakePiece(selectedPiece);
+                    }
+                }
+            }
+        }
+
+        /* ============================================================================
+           15. АНИМАЦИЯ ФИГУР (РОЖДЕНИЕ, ВЫБОР, ПРЫЖОК, ПОБЕДА)
+           ============================================================================ */
+        function spawnPiece(index) {
+            isAnimating = true;
+            const pieceObj = createPieceHierarchy(turn);
+            pieceObj.player = turn;
+            pieceObj.positionIndex = index;
+            pieceObj.wrapper.position.copy(nodes[index]);
+            pieceObj.wrapper.position.y = 10.5;
+            boardGroup.add(pieceObj.wrapper);
+            pieces.push(pieceObj);
+
+            setTimeout(() => playWoodSfx('place'), 320);
+
+            gsap.fromTo(pieceObj.flip.rotation, { x: Math.PI }, { x: 0, duration: 0.95, ease: 'power2.out' });
+            gsap.to(pieceObj.wrapper.position, {
+                y: 0,
+                duration: 0.95,
+                ease: 'bounce.out',
+                onComplete: () => {
+                    isAnimating = false;
+                    endTurn();
+                }
+            });
+        }
+
+        function selectPiece(index) {
+            playWoodSfx('select');
+            selectedPiece = pieces.find(p => p.positionIndex === index);
+            if (!selectedPiece) return;
+            gsap.to(selectedPiece.wrapper.position, { y: 0.85, duration: 0.28, ease: 'back.out(1.6)' });
+            selectedPiece.spinTween = gsap.to(selectedPiece.spin.rotation, {
+                y: '+=' + Math.PI * 2,
+                duration: 4,
+                repeat: -1,
+                ease: 'none'
+            });
+        }
+
+        function deselectPiece() {
+            if (selectedPiece) {
+                if (selectedPiece.spinTween) selectedPiece.spinTween.kill();
+                gsap.to(selectedPiece.wrapper.position, { y: 0, duration: 0.28, ease: 'power2.out' });
+                const targetRot = Math.round(selectedPiece.spin.rotation.y / (Math.PI * 2)) * Math.PI * 2;
+                gsap.to(selectedPiece.spin.rotation, { y: targetRot, duration: 0.28 });
+                selectedPiece = null;
+            }
+        }
+
+        function movePiece(pieceObj, targetIndex) {
+            isAnimating = true;
+            playWoodSfx('move');
+
+            board[pieceObj.positionIndex] = 0;
+            board[targetIndex] = turn;
+            pieceObj.positionIndex = targetIndex;
+            if (pieceObj.spinTween) pieceObj.spinTween.kill();
+            selectedPiece = null;
+            const targetPos = nodes[targetIndex];
+
+            gsap.to(pieceObj.wrapper.position, { x: targetPos.x, z: targetPos.z, duration: 0.58, ease: 'power1.inOut' });
+            gsap.to(pieceObj.wrapper.position, { y: 2.25, duration: 0.29, yoyo: true, repeat: 1, ease: 'sine.out' });
+
+            const dir = targetPos.clone().sub(pieceObj.wrapper.position).normalize();
+            const axis = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+            const proxy = { angle: 0 };
+
+            gsap.to(proxy, {
+                angle: Math.PI * 2,
+                duration: 0.58,
+                ease: 'power1.inOut',
+                onUpdate: () => pieceObj.flip.quaternion.setFromAxisAngle(axis, proxy.angle),
+                onComplete: () => {
+                    pieceObj.flip.quaternion.identity();
+                    pieceObj.wrapper.position.y = 0;
+                    gsap.fromTo(
+                        pieceObj.spin.scale,
+                        { x: 1.12, y: 0.88, z: 1.12 },
+                        { x: 1, y: 1, z: 1, duration: 0.36, ease: 'back.out(2)' }
+                    );
+                    setTimeout(() => {
+                        isAnimating = false;
+                        endTurn();
+                    }, 130);
+                }
+            });
+        }
+
+        function shakePiece(pieceObj) {
+            isAnimating = true;
+            const origX = pieceObj.wrapper.position.x;
+            gsap.to(pieceObj.wrapper.position, {
+                x: origX + 0.16,
+                duration: 0.05,
+                yoyo: true,
+                repeat: 5,
+                onComplete: () => {
+                    pieceObj.wrapper.position.x = origX;
+                    isAnimating = false;
+                }
+            });
+        }
+
+        /* ============================================================================
+           16. ПРОВЕРКА ПОБЕДЫ И ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+           ============================================================================ */
+        function checkWin(player) {
+            for (const line of winLines) {
+                if (board[line[0]] === player && board[line[1]] === player && board[line[2]] === player) {
+                    return line;
+                }
+            }
+            return null;
+        }
+
+        function hasValidMoves(player) {
+            const pPieces = pieces.filter(p => p.player === player);
+            for (const p of pPieces) {
+                for (const adj of adjacency[p.positionIndex]) {
+                    if (board[adj] === 0) return true;
+                }
+            }
+            return false;
+        }
+
+        function endTurn() {
+            const winLine = checkWin(turn);
+            if (winLine) {
+                showGameOver(turn, winLine);
+                return;
+            }
+            if (phase === 1 && p1Pieces === 3 && p2Pieces === 3) {
+                phase = 2;
+                showToast('Фаза II: Все фигуры на доске — время манёвров');
+            }
+            turn = turn === 1 ? 2 : 1;
+            updateUI();
+
+            if (phase === 2 && !hasValidMoves(turn)) {
+                showGameOver(turn === 1 ? 2 : 1, null);
+                return;
+            }
+
+            triggerAITurnIfNeeded();
+        }
+
+        function updateUI() {
+            document.getElementById('hud-name-p1').textContent = playerNames[1];
+            document.getElementById('hud-name-p2').textContent = playerNames[2];
+
+            const slotP1 = document.getElementById('slot-p1');
+            const slotP2 = document.getElementById('slot-p2');
+            slotP1.classList.toggle('active-turn', turn === 1);
+            slotP2.classList.toggle('active-turn', turn === 2);
+
+            const pips1 = document.getElementById('pips-p1').children;
+            const pips2 = document.getElementById('pips-p2').children;
+            const rem1 = phase === 1 ? (3 - p1Pieces) : 3;
+            const rem2 = phase === 1 ? (3 - p2Pieces) : 3;
+
+            for (let i = 0; i < 3; i++) {
+                pips1[i].className = i < rem1 ? 'pip filled-p1' : 'pip';
+                pips2[i].className = i < rem2 ? 'pip filled-p2' : 'pip';
+            }
+
+            const tBanner = document.getElementById('turn-banner');
+            const pBanner = document.getElementById('phase-banner');
+
+            if (playMode === 'online') {
+                tBanner.textContent = turn === myOnlineSide ? 'Ваш ход' : `Ход: ${playerNames[turn]}`;
+            } else {
+                tBanner.textContent = `Ход: ${playerNames[turn]}`;
+            }
+            tBanner.className = turn === 1 ? 'p1-color' : 'p2-color';
+            pBanner.textContent = phase === 1 ? 'Фаза I: Расстановка' : 'Фаза II: Манёвры';
+        }
+
+        function showGameOver(winner, winLine) {
+            gameState = 'gameover';
+            playWoodSfx('win');
+
+            if (winner === 1) scoreP1++;
+            else scoreP2++;
+
+            document.getElementById('top-hud-wrapper').classList.add('hidden');
+            document.getElementById('emote-popover').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+
+            const wText = document.getElementById('winner-text');
+            wText.textContent = `${playerNames[winner]} Победил!`;
+            wText.className = 'game-title ' + (winner === 1 ? 'p1-color' : 'p2-color');
+
+            document.getElementById('stat-moves').textContent = moveCounter;
+            document.getElementById('stat-score').textContent = `${scoreP1} : ${scoreP2}`;
+
+            if (winLine) {
+                spawnWinningBeam(winLine);
+                winLine.forEach((idx, i) => {
+                    const p = pieces.find(piece => piece.positionIndex === idx);
+                    if (p) {
+                        gsap.to(p.wrapper.position, {
+                            y: 1.45,
+                            duration: 0.85,
+                            delay: i * 0.18,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'sine.inOut'
+                        });
+                        gsap.to(p.spin.rotation, {
+                            y: Math.PI * 2,
+                            duration: 2.2,
+                            repeat: -1,
+                            ease: 'linear'
+                        });
+                    }
+                });
+            }
+        }
+
+        /* ============================================================================
+           17. НАВИГАЦИЯ ПО МЕНЮ, СТАРТ И ПЕРЕЗАПУСК ПАРТИИ
+           ============================================================================ */
+        const mainModeList = document.getElementById('main-mode-list');
+        const panelAIConfig = document.getElementById('panel-ai-config');
+        const panelOnlineConfig = document.getElementById('panel-online-config');
+
+        document.getElementById('btn-mode-local').addEventListener('click', () => {
+            initAudio();
+            const myName = getMyNickname();
+            playerNames[1] = myName === 'Странник Неба' ? 'Светлое Дерево' : myName;
+            playerNames[2] = 'Тёмное Дерево';
+            scoreP1 = 0;
+            scoreP2 = 0;
+            startMatch('local');
+        });
+
+        document.getElementById('btn-mode-ai').addEventListener('click', () => {
+            initAudio();
+            mainModeList.classList.add('hidden');
+            panelAIConfig.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-ai-back').addEventListener('click', () => {
+            panelAIConfig.classList.add('hidden');
+            mainModeList.classList.remove('hidden');
+        });
+
+        document.querySelectorAll('.pill-option[data-ai]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.pill-option[data-ai]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                aiDifficulty = btn.dataset.ai;
+            });
+        });
+
+        document.getElementById('btn-ai-start').addEventListener('click', () => {
+            initAudio();
+            playerNames[1] = getMyNickname();
+            const aiLabels = { easy: 'Дух Ветерка', medium: 'Дух Подсолнуха', hard: 'Абсолют Неба' };
+            playerNames[2] = aiLabels[aiDifficulty] || 'Дух Неба';
+            scoreP1 = 0;
+            scoreP2 = 0;
+            startMatch('ai');
+        });
+
+        document.getElementById('btn-mode-online').addEventListener('click', () => {
+            initAudio();
+            mainModeList.classList.add('hidden');
+            panelOnlineConfig.classList.remove('hidden');
+            initPeerSession();
+        });
+
+        document.getElementById('btn-online-back').addEventListener('click', () => {
+            panelOnlineConfig.classList.add('hidden');
+            mainModeList.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-copy-id').addEventListener('click', () => {
+            if (!myRoomCode) return;
+            navigator.clipboard.writeText(myRoomCode).then(() => {
+                showToast(`ID комнаты «${myRoomCode}» скопирован! Отправьте его другу.`);
+            }).catch(() => {
+                showToast(`Ваш ID: ${myRoomCode}`);
+            });
+        });
+
+        document.getElementById('btn-join-peer').addEventListener('click', () => {
+            const val = document.getElementById('remote-peer-input').value;
+            connectToFriend(val);
+        });
+
+        document.getElementById('remote-peer-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                connectToFriend(e.target.value);
+            }
+        });
+
+        function clearBoardObjects() {
+            pieces.forEach(p => {
+                gsap.killTweensOf(p.wrapper.position);
+                gsap.killTweensOf(p.spin.rotation);
+                boardGroup.remove(p.wrapper);
+            });
+            pieces = [];
+            if (winBeamMesh) {
+                boardGroup.remove(winBeamMesh);
+                winBeamMesh = null;
+            }
+            board.fill(0);
+            p1Pieces = 0;
+            p2Pieces = 0;
+            moveCounter = 0;
+            phase = 1;
+            turn = 1;
+            selectedPiece = null;
+            isAnimating = false;
+        }
+
+        function startMatch(mode) {
+            playMode = mode;
+            clearBoardObjects();
+
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('rules-modal').classList.add('hidden');
+            gameState = 'transitioning';
+
+            document.getElementById('net-badge').classList.toggle('hidden', mode !== 'online');
+            document.getElementById('btn-emote').classList.toggle('hidden', mode !== 'online');
+            document.getElementById('btn-home').classList.remove('hidden');
+            document.getElementById('btn-camera-view').classList.remove('hidden');
+
+            if (mode === 'online') {
+                const sideLabel = myOnlineSide === 1 ? 'Вы: Светлые' : 'Вы: Тёмные';
+                document.getElementById('net-text').textContent = `${sideLabel} • Прямой канал активен`;
+            }
+
+            const targetZ = (mode === 'online' && myOnlineSide === 2) ? -10.5 : 10.5;
+            gsap.to(camera.position, {
+                x: 0,
+                y: 12.2,
+                z: targetZ,
+                duration: 2.2,
+                ease: 'power2.inOut',
+                onUpdate: () => camera.lookAt(0, 0, 0),
+                onComplete: () => {
+                    gameState = 'playing';
+                    document.getElementById('top-hud-wrapper').classList.remove('hidden');
+                    updateUI();
+                    controls.target.set(0, 0, 0);
+                    controls.enabled = true;
+                    triggerAITurnIfNeeded();
+                }
+            });
+        }
+
+        function resetBoardAndRestart() {
+            clearBoardObjects();
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('top-hud-wrapper').classList.remove('hidden');
+            gameState = 'playing';
+            updateUI();
+
+            const targetZ = (playMode === 'online' && myOnlineSide === 2) ? -10.5 : 10.5;
+            gsap.to(camera.position, { x: 0, y: 12.2, z: targetZ, duration: 1.4, ease: 'power2.inOut' });
+            controls.target.set(0, 0, 0);
+            controls.enabled = true;
+            triggerAITurnIfNeeded();
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            if (playMode === 'online') {
+                myOnlineSide = myOnlineSide === 1 ? 2 : 1;
+                const temp = playerNames[1];
+                playerNames[1] = playerNames[2];
+                playerNames[2] = temp;
+                sendNetPacket({ type: 'rematch' });
+            }
+            resetBoardAndRestart();
+        });
+
+        function returnToMainMenu() {
+            clearBoardObjects();
+            gameState = 'intro';
+            controls.enabled = false;
+
+            document.getElementById('top-hud-wrapper').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('emote-popover').classList.add('hidden');
+            document.getElementById('btn-home').classList.add('hidden');
+            document.getElementById('btn-camera-view').classList.add('hidden');
+            document.getElementById('btn-emote').classList.add('hidden');
+
+            panelAIConfig.classList.add('hidden');
+            panelOnlineConfig.classList.add('hidden');
+            mainModeList.classList.remove('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-back-menu').addEventListener('click', returnToMainMenu);
+        document.getElementById('btn-home').addEventListener('click', returnToMainMenu);
+
+        /* ============================================================================
+           18. ДОПОЛНИТЕЛЬНЫЕ ИНСТРУМЕНТЫ (ВРЕМЯ СУТОК, КАМЕРА, ПРАВИЛА, ФРАЗЫ)
+           ============================================================================ */
+        document.getElementById('btn-sky-theme').addEventListener('click', (e) => {
+            currentThemeIndex = (currentThemeIndex + 1) % skyThemes.length;
+            const th = skyThemes[currentThemeIndex];
+            e.currentTarget.textContent = th.icon;
+            showToast(th.name);
+
+            gsap.to(skyUniforms.topColor.value, { r: th.topColor.r, g: th.topColor.g, b: th.topColor.b, duration: 1.8 });
+            gsap.to(skyUniforms.bottomColor.value, { r: th.bottomColor.r, g: th.bottomColor.g, b: th.bottomColor.b, duration: 1.8 });
+            gsap.to(skyUniforms.cloudColor.value, { r: th.cloudColor.r, g: th.cloudColor.g, b: th.cloudColor.b, duration: 1.8 });
+            gsap.to(skyUniforms.cloudShadow.value, { r: th.cloudShadow.r, g: th.cloudShadow.g, b: th.cloudShadow.b, duration: 1.8 });
+            gsap.to(skyUniforms.starVisibility, { value: th.starVisibility, duration: 1.8 });
+
+            gsap.to(cloud3DUniforms.uTopColor.value, { r: th.cloudColor.r, g: th.cloudColor.g, b: th.cloudColor.b, duration: 1.8 });
+            gsap.to(cloud3DUniforms.uBottomColor.value, { r: th.cloudShadow.r, g: th.cloudShadow.g, b: th.cloudShadow.b, duration: 1.8 });
+
+            gsap.to(dirLight.color, { r: th.sunColor.r, g: th.sunColor.g, b: th.sunColor.b, duration: 1.8 });
+            gsap.to(dirLight, { intensity: th.sunIntensity, duration: 1.8 });
+            gsap.to(hemiLight, { intensity: th.ambientIntensity, duration: 1.8 });
+            gsap.to(scene.fog.color, { r: th.fogColor.r, g: th.fogColor.g, b: th.fogColor.b, duration: 1.8 });
+        });
+
+        let isTopDownCamera = false;
+        document.getElementById('btn-camera-view').addEventListener('click', () => {
+            if (gameState !== 'playing') return;
+            isTopDownCamera = !isTopDownCamera;
+            const targetZ = (playMode === 'online' && myOnlineSide === 2) ? -10.5 : 10.5;
+            if (isTopDownCamera) {
+                gsap.to(camera.position, { x: 0, y: 17.5, z: targetZ > 0 ? 0.8 : -0.8, duration: 1.1, ease: 'power2.inOut' });
+            } else {
+                gsap.to(camera.position, { x: 0, y: 12.2, z: targetZ, duration: 1.1, ease: 'power2.inOut' });
+            }
+        });
+
+        const rulesModal = document.getElementById('rules-modal');
+        document.getElementById('btn-rules').addEventListener('click', () => {
+            rulesModal.classList.toggle('hidden');
+        });
+        document.getElementById('btn-close-rules').addEventListener('click', () => {
+            rulesModal.classList.add('hidden');
+        });
+
+        const emotePopover = document.getElementById('emote-popover');
+        document.getElementById('btn-emote').addEventListener('click', () => {
+            emotePopover.classList.toggle('hidden');
+        });
+
+        document.querySelectorAll('.emote-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const msg = btn.dataset.msg;
+                emotePopover.classList.add('hidden');
+                showToast(`Вы: ${msg}`);
+                sendNetPacket({ type: 'emote', msg });
+            });
+        });
+
+        /* ============================================================================
+           19. ГЛАВНЫЙ ЦИКЛ РЕНДЕРА И ФИЗИКИ ОКРУЖЕНИЯ (60+ FPS)
+           ============================================================================ */
+        let time = 0;
+        const cP1 = new THREE.Color(0xffffff);
+        const cP2 = new THREE.Color(0xffb380);
+        const cMoveHint = new THREE.Color(0x3377ee);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+            skyUniforms.time.value = time;
+            cloud3DUniforms.uTime.value = time;
+
+            // 1) Плавный дрейф объёмных кучевых 3D-облаков и разворот облачных слоёв к камере
+            for (let i = 0; i < cloudClusters.length; i++) {
+                const cl = cloudClusters[i];
+                cl.angle += cl.speed * 0.035;
+                cl.mesh.position.x = Math.cos(cl.angle) * cl.radius;
+                cl.mesh.position.z = Math.sin(cl.angle) * cl.radius;
+                cl.mesh.position.y = cl.baseY + Math.sin(time * 0.65 + cl.bobPhase) * 0.32;
+            }
+
+            for (let i = 0; i < allCloudBillboards.length; i++) {
+                const bb = allCloudBillboards[i];
+                bb.quaternion.copy(camera.quaternion);
+                bb.rotation.z += bb.userData.rollOffset;
+            }
+
+            // 2) Естественное покачивание вертикальных 3D-подсолнухов в угловых вазонах
+            for (let i = 0; i < sunflowers.length; i++) {
+                const sf = sunflowers[i];
+                sf.mesh.rotation.z = Math.sin(time * 1.35 + sf.phase) * 0.042;
+                sf.mesh.rotation.x = Math.cos(time * 1.05 + sf.phase) * 0.032;
+            }
+
+            // 3) Кружение золотых лепестков в потоках воздуха
+            const pPositions = petals.geometry.attributes.position.array;
+            for (let i = 0; i < petalCount * 3; i += 3) {
+                pPositions[i + 1] -= 0.024;
+                pPositions[i] += Math.sin(time * 1.4 + i) * 0.016;
+                pPositions[i + 2] += Math.cos(time * 1.0 + i) * 0.015;
+                if (pPositions[i + 1] < -7) {
+                    pPositions[i + 1] = 24;
+                    pPositions[i] = (Math.random() - 0.5) * 42;
+                }
+            }
+            petals.geometry.attributes.position.needsUpdate = true;
+
+            // 4) Поведение камеры
+            if (gameState === 'intro') {
+                camera.position.x = Math.sin(time * 0.14) * 16.5;
+                camera.position.z = Math.cos(time * 0.14) * 16.5;
+                camera.position.y = 13.0 + Math.sin(time * 0.28) * 1.4;
+                camera.lookAt(0, 0, 0);
+            } else if (gameState === 'playing' || gameState === 'gameover') {
+                controls.update();
+            }
+
+            // 5) Интерактивная подсветка узлов доски
+            raycaster.setFromCamera(pointer, camera);
+            let hitIndex = -1;
+            if (gameState === 'playing' && !isAnimating) {
+                const intersects = raycaster.intersectObjects(hitboxes);
+                if (intersects.length > 0) {
+                    hitIndex = intersects[0].object.userData.index;
+                }
+                if (playMode === 'online' && hitIndex !== lastSentHover) {
+                    lastSentHover = hitIndex;
+                    sendNetPacket({ type: 'hover', index: hitIndex });
+                }
+            }
+
+            const pColor = turn === 1 ? cP1 : cP2;
+
+            for (let i = 0; i < 9; i++) {
+                let tScale = 1.0;
+                let tEmiss = new THREE.Color(0x000000);
+
+                if (gameState === 'playing' && !isAnimating) {
+                    const hov = (i === hitIndex) || (playMode === 'online' && i === remoteHoverIndex);
+
+                    if (phase === 1 && board[i] === 0 && hov) {
+                        tScale = 1.26;
+                        tEmiss = pColor;
+                    } else if (phase === 2) {
+                        if (!selectedPiece) {
+                            if (board[i] === turn && hov) {
+                                tScale = 1.26;
+                                tEmiss = pColor;
+                            }
+                        } else {
+                            if (selectedPiece.positionIndex === i) {
+                                tScale = 1.35;
+                                tEmiss = pColor;
+                            } else if (board[i] === 0 && adjacency[selectedPiece.positionIndex].includes(i)) {
+                                if (hov) {
+                                    tScale = 1.35;
+                                    tEmiss = pColor;
+                                } else {
+                                    tScale = 1.16;
+                                    tEmiss = cMoveHint;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                rings[i].scale.lerp(new THREE.Vector3(tScale, tScale, tScale), 0.16);
+                rings[i].material.emissive.lerp(tEmiss, 0.16);
+            }
+
+            document.body.style.cursor = (hitIndex !== -1 && !isDragging && gameState === 'playing') ? 'pointer' : 'default';
+
+            composer.render();
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

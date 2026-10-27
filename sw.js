@@ -1,5 +1,5 @@
-// Service Worker for Three Men's Morris 3D (iPhone iOS PWA & GitHub Pages)
-const CACHE_NAME = 'three-mens-morris-3d-v1.3';
+﻿// Service Worker for Three Men's Morris 3D (iPhone iOS PWA & GitHub Pages)
+const CACHE_NAME = 'three-mens-morris-3d-v1.7';
 
 const CORE_ASSETS = [
   './',
@@ -19,15 +19,11 @@ const CORE_ASSETS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      for (const url of CORE_ASSETS) {
-        try {
-          await cache.add(url);
-        } catch (err) {
-          // Ignore individual asset failure during install so offline SW still activates
-        }
-      }
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        CORE_ASSETS.map((url) => cache.add(url).catch(() => {}))
+      )
+    )
   );
 });
 
@@ -54,8 +50,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isSameOrigin = req.url.startsWith(self.location.origin);
+
   event.respondWith(
-    caches.match(req).then((cachedResp) => {
+    caches.match(req, { ignoreSearch: isSameOrigin }).then((cachedResp) => {
       if (cachedResp) {
         // Revalidate in background
         fetch(req).then((netResp) => {

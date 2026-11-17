@@ -1651,9 +1651,21 @@
         ],
         iceCandidatePoolSize: 4
       };
+      const MQTT_RELAY_BROKERS = [
+        'wss://test.mosquitto.org:8081/',
+        'wss://broker.emqx.io:8084/mqtt'
+      ];
       const myGuestToken = 'g_' + Math.random().toString(36).slice(2) + '_' + Date.now().toString(36);
+      const myInstanceTag = Math.random().toString(36).slice(2, 8);
+      const forceRelayOnly = (() => {
+        try { return new URLSearchParams(window.location.search).get('forceRelay') === '1'; } catch (e) { return false; }
+      })();
       let peerInstance = null;
       let onlineConn = null;
+      let relaySession = null;
+      let outboundMsgSeq = 0;
+      const seenPacketIds = new Set();
+      const seenPacketOrder = [];
       let boundGuestToken = '';
       let onlineRoomSessionId = '';
       let hasMatchStartedInRoom = false;
@@ -4479,10 +4491,23 @@
         });
       }
 
+      function isOnlineTransportOpen() {
+        const rtcOpen = Boolean(onlineConn && onlineConn.open);
+        const relayOpen = Boolean(relaySession && relaySession.active && relaySession.peerConnected && relaySession.openBrokerCount() > 0);
+        return rtcOpen || relayOpen;
+      }
+
       function sendOnlinePacket(payload) {
+        if (!payload || typeof payload !== 'object') return;
+        const pkt = Object.assign({ _mid: 'm_' + (++outboundMsgSeq) + '_' + myInstanceTag }, payload);
         if (onlineConn && onlineConn.open) {
           try {
-            onlineConn.send(payload);
+            onlineConn.send(pkt);
+          } catch (e) {}
+        }
+        if (relaySession && relaySession.active && relaySession.peerConnected) {
+          try {
+            relaySession.sendToPeer(pkt);
           } catch (e) {}
         }
       }
@@ -5419,7 +5444,317 @@
       document.getElementById('btn-hint').addEventListener('click', showHintMove);
       document.getElementById('btn-restart').addEventListener('click', () => restartGame(false, false));
 
-      // --- Online Multiplayer (PeerJS WebRTC P2P Room Code System + Sync & Mutual Consent) ---
+      // --- Online Multiplayer (Hybrid PeerJS WebRTC + Dual-Broker MQTT-over-WSS Relay + Mutual Consent) ---
+      const utf8Encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+      const utf8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+
+      function encodeUtf8Bytes(str) {
+        if (utf8Encoder) return utf8Encoder.encode(str);
+        const s = unescape(encodeURIComponent(str));
+        const out = new Uint8Array(s.length);
+        for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+        return out;
+      }
+
+      function decodeUtf8Bytes(bytes) {
+        if (utf8Decoder) return utf8Decoder.decode(bytes);
+        let s = '';
+        for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+        try { return decodeURIComponent(escape(s)); } catch (e) { return s; }
+      }
+
+      function encodeMqttVarLen(len) {
+        const out = [];
+        let x = len;
+        do {
+          let b = x % 128;
+          x = Math.floor(x / 128);
+          if (x > 0) b |= 128;
+          out.push(b);
+        } while (x > 0);
+        return out;
+      }
+
+      function encodeMqttStr(str) {
+        const b = encodeUtf8Bytes(str);
+        return [(b.length >> 8) & 0xff, b.length & 0xff, b];
+      }
+
+      function buildMqttPacket(firstByte, parts) {
+        let total = 0;
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i];
+          total += (p instanceof Uint8Array) ? p.length : 1;
+        }
+        const rem = encodeMqttVarLen(total);
+        const out = new Uint8Array(1 + rem.length + total);
+        out[0] = firstByte;
+        let offset = 1;
+        for (let i = 0; i < rem.length; i++) out[offset++] = rem[i];
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i];
+          if (p instanceof Uint8Array) {
+            out.set(p, offset);
+            offset += p.length;
+          } else {
+            out[offset++] = p;
+          }
+        }
+        return out;
+      }
+
+      function buildMqttConnect(clientId) {
+        const cid = encodeMqttStr(clientId);
+        // Protocol Name "MQTT", Level 4 (3.1.1), CleanSession=1 (0x02), KeepAlive 45s
+        return buildMqttPacket(0x10, [0x00, 0x04, 0x4d, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x2d, cid[0], cid[1], cid[2]]);
+      }
+
+      function buildMqttSubscribe(pktId, topic) {
+        const t = encodeMqttStr(topic);
+        return buildMqttPacket(0x82, [(pktId >> 8) & 0xff, pktId & 0xff, t[0], t[1], t[2], 0x00]);
+      }
+
+      function buildMqttPublish(topic, jsonStr) {
+        const t = encodeMqttStr(topic);
+        const payload = encodeUtf8Bytes(jsonStr);
+        return buildMqttPacket(0x30, [t[0], t[1], t[2], payload]);
+      }
+
+      function recordSeenPacketId(mid) {
+        if (typeof mid !== 'string' || !mid) return true;
+        if (seenPacketIds.has(mid)) return false;
+        seenPacketIds.add(mid);
+        seenPacketOrder.push(mid);
+        if (seenPacketOrder.length > 400) {
+          const oldest = seenPacketOrder.shift();
+          seenPacketIds.delete(oldest);
+        }
+        return true;
+      }
+
+      function createRelaySession(role, code, onSubscribedCb, onMessageCb) {
+        const hostInbox = `tmm3d/royal/v2/room/${code}/host`;
+        const myInbox = role === 1
+          ? hostInbox
+          : `tmm3d/royal/v2/room/${code}/guest/${myGuestToken}`;
+
+        const session = {
+          active: true,
+          suppressIncoming: false,
+          role,
+          code,
+          myInbox,
+          hostTopic: hostInbox,
+          boundGuestTopic: '',
+          peerConnected: false,
+          helloTimer: null,
+          probeFailTimer: null,
+          brokers: [],
+          openBrokerCount() {
+            let count = 0;
+            for (let i = 0; i < this.brokers.length; i++) {
+              const b = this.brokers[i];
+              if (b.ws && b.ws.readyState === 1 && b.subscribed) count++;
+            }
+            return count;
+          },
+          connectingCount() {
+            let count = 0;
+            for (let i = 0; i < this.brokers.length; i++) {
+              const b = this.brokers[i];
+              if (b.ws && (b.ws.readyState === 0 || (b.ws.readyState === 1 && !b.subscribed))) count++;
+            }
+            return count;
+          },
+          publish(topic, payloadObj) {
+            if (!this.active || !topic) return false;
+            const jsonStr = JSON.stringify(payloadObj);
+            const frame = buildMqttPublish(topic, jsonStr);
+            let sent = false;
+            for (let i = 0; i < this.brokers.length; i++) {
+              const b = this.brokers[i];
+              if (b.ws && b.ws.readyState === 1 && b.connected) {
+                try {
+                  b.ws.send(frame);
+                  sent = true;
+                } catch (e) {}
+              }
+            }
+            return sent;
+          },
+          sendToPeer(payloadObj) {
+            const target = this.role === 1 ? this.boundGuestTopic : this.hostTopic;
+            if (!target) return false;
+            return this.publish(target, payloadObj);
+          },
+          stopHello() {
+            if (this.helloTimer) {
+              clearInterval(this.helloTimer);
+              this.helloTimer = null;
+            }
+          },
+          clearTimers() {
+            this.stopHello();
+            if (this.probeFailTimer) {
+              clearTimeout(this.probeFailTimer);
+              this.probeFailTimer = null;
+            }
+          },
+          start() {
+            for (let i = 0; i < this.brokers.length; i++) {
+              connectBroker(this.brokers[i]);
+            }
+          },
+          destroy() {
+            this.active = false;
+            this.suppressIncoming = true;
+            this.peerConnected = false;
+            this.clearTimers();
+            for (let i = 0; i < this.brokers.length; i++) {
+              const b = this.brokers[i];
+              if (b.pingTimer) { clearInterval(b.pingTimer); b.pingTimer = null; }
+              if (b.reconnTimer) { clearTimeout(b.reconnTimer); b.reconnTimer = null; }
+              if (b.ws) {
+                if (b.ws.readyState === 1 && b.connected) {
+                  try { b.ws.send(new Uint8Array([0xe0, 0x00])); } catch (e) {}
+                }
+                try { b.ws.close(); } catch (e) {}
+                b.ws = null;
+              }
+              b.connected = false;
+              b.subscribed = false;
+            }
+          }
+        };
+
+        function connectBroker(entry) {
+          if (!session.active || session !== relaySession || typeof WebSocket === 'undefined') return;
+          if (entry.ws && (entry.ws.readyState === 0 || entry.ws.readyState === 1)) return;
+          entry.connected = false;
+          entry.subscribed = false;
+          let rxBuf = new Uint8Array(0);
+          let pktId = 1;
+          let ws;
+          try {
+            ws = new WebSocket(entry.url, 'mqtt');
+          } catch (e) {
+            scheduleBrokerReconnect(entry);
+            return;
+          }
+          ws.binaryType = 'arraybuffer';
+          entry.ws = ws;
+
+          ws.onopen = () => {
+            if (!session.active || session !== relaySession || entry.ws !== ws) {
+              try { ws.close(); } catch (e) {}
+              return;
+            }
+            const cid = ('tm' + role + myInstanceTag + Math.random().toString(36).slice(2, 8)).replace(/[^0-9a-zA-Z]/g, '').slice(0, 22);
+            try { ws.send(buildMqttConnect(cid)); } catch (e) {}
+          };
+
+          ws.onmessage = (ev) => {
+            if (!session.active || session.suppressIncoming || session !== relaySession || entry.ws !== ws) return;
+            if (!(ev.data instanceof ArrayBuffer)) return;
+            const chunk = new Uint8Array(ev.data);
+            const merged = new Uint8Array(rxBuf.length + chunk.length);
+            merged.set(rxBuf, 0);
+            merged.set(chunk, rxBuf.length);
+            rxBuf = merged;
+
+            while (rxBuf.length >= 2) {
+              let mult = 1;
+              let remLen = 0;
+              let pos = 1;
+              let completeVarInt = false;
+              while (pos < rxBuf.length) {
+                const enc = rxBuf[pos++];
+                remLen += (enc & 127) * mult;
+                if ((enc & 128) === 0) {
+                  completeVarInt = true;
+                  break;
+                }
+                mult *= 128;
+                if (pos > 5) {
+                  rxBuf = new Uint8Array(0);
+                  return;
+                }
+              }
+              if (!completeVarInt) break;
+              const totalLen = pos + remLen;
+              if (rxBuf.length < totalLen) break;
+              const pkt = rxBuf.subarray(0, totalLen);
+              rxBuf = rxBuf.slice(totalLen);
+              const ptype = pkt[0] >> 4;
+
+              if (ptype === 2) {
+                if (pkt.length >= pos + 2 && pkt[pos + 1] === 0) {
+                  entry.connected = true;
+                  try { ws.send(buildMqttSubscribe(++pktId, myInbox)); } catch (e) {}
+                  if (entry.pingTimer) clearInterval(entry.pingTimer);
+                  entry.pingTimer = setInterval(() => {
+                    if (session.active && entry.ws === ws && ws.readyState === 1 && entry.connected) {
+                      try { ws.send(new Uint8Array([0xc0, 0x00])); } catch (e) {}
+                    }
+                  }, 20000);
+                } else {
+                  try { ws.close(); } catch (e) {}
+                }
+              } else if (ptype === 9) {
+                entry.subscribed = true;
+                if (onSubscribedCb) onSubscribedCb(entry);
+              } else if (ptype === 3) {
+                const qos = (pkt[0] >> 1) & 0x03;
+                let ptr = pos;
+                if (ptr + 2 > pkt.length) continue;
+                const tLen = (pkt[ptr] << 8) | pkt[ptr + 1];
+                ptr += 2;
+                if (ptr + tLen > pkt.length) continue;
+                const topic = decodeUtf8Bytes(pkt.subarray(ptr, ptr + tLen));
+                ptr += tLen;
+                if (qos > 0) ptr += 2;
+                if (ptr > pkt.length) continue;
+                const jsonText = decodeUtf8Bytes(pkt.subarray(ptr));
+                try {
+                  const obj = JSON.parse(jsonText);
+                  if (obj && typeof obj === 'object' && onMessageCb) {
+                    onMessageCb(topic, obj);
+                  }
+                } catch (e) {}
+              }
+            }
+          };
+
+          ws.onclose = () => {
+            if (entry.pingTimer) { clearInterval(entry.pingTimer); entry.pingTimer = null; }
+            if (entry.ws === ws) entry.ws = null;
+            entry.connected = false;
+            entry.subscribed = false;
+            scheduleBrokerReconnect(entry);
+          };
+
+          ws.onerror = () => {
+            try { ws.close(); } catch (e) {}
+          };
+        }
+
+        function scheduleBrokerReconnect(entry) {
+          if (!session.active || session !== relaySession || peerLeftIntentionally) return;
+          if (entry.reconnTimer) return;
+          entry.reconnTimer = setTimeout(() => {
+            entry.reconnTimer = null;
+            connectBroker(entry);
+          }, 2500);
+        }
+
+        MQTT_RELAY_BROKERS.forEach((url) => {
+          const entry = { url, ws: null, connected: false, subscribed: false, pingTimer: null, reconnTimer: null };
+          session.brokers.push(entry);
+        });
+
+        return session;
+      }
+
       const onlineModal = document.getElementById('online-modal');
       const onlineStatusText = document.getElementById('online-status-text');
       const onlineModalDot = document.getElementById('online-modal-dot');
@@ -5600,7 +5935,7 @@
       }
 
       function requestOnlineAction(action, params = {}) {
-        if (!gameState.onlineConnected || !onlineConn || !onlineConn.open) return;
+        if (!gameState.onlineConnected || !isOnlineTransportOpen()) return;
         if (onlineConsent.active) return;
         const now = Date.now();
         if (now < (onlineActionCooldownUntil[action] || 0)) {
@@ -5798,7 +6133,7 @@
       }
 
       function requestOrSendFullSync() {
-        if (!gameState.onlineConnected || !onlineConn || !onlineConn.open) return;
+        if (!gameState.onlineConnected || !isOnlineTransportOpen()) return;
         if (gameState.onlineRole === 1) {
           sendOnlinePacket(buildFullSyncPayload(false));
         } else {
@@ -5817,11 +6152,29 @@
         stopOnlineHeartbeat();
         lastPeerPacketAt = Date.now();
         heartbeatIntervalId = setInterval(() => {
-          if (!onlineConn || !onlineConn.open || !gameState.onlineConnected) return;
+          if (!isOnlineTransportOpen() || !gameState.onlineConnected) return;
           sendOnlinePacket({ type: 'ping', t: Date.now() });
           if (!document.hidden && (Date.now() - lastPeerPacketAt > 18000)) {
-            const staleConn = onlineConn;
-            try { staleConn.close(); } catch (e) {}
+            if (onlineConn) {
+              const staleConn = onlineConn;
+              onlineConn = null;
+              try { staleConn.close(); } catch (e) {}
+            }
+            if (relaySession) {
+              relaySession.peerConnected = false;
+            }
+            stopOnlineHeartbeat();
+            closeOnlineConsentModal(true);
+            gameState.onlineConnected = false;
+            if (!peerLeftIntentionally) {
+              if (gameState.onlineRole === 1 && gameState.roomCode) {
+                setOnlineStatus(`Связь прервана. Ожидание переподключения (код ${gameState.roomCode})...`, 'waiting');
+                showTransientStatus('Связь с соперником прервана — ждём переподключения', 3600);
+              } else if (gameState.onlineRole === 2 && hasMatchStartedInRoom && gameState.roomCode) {
+                scheduleGuestReconnect();
+              }
+            }
+            updateHUD();
           }
         }, 4000);
       }
@@ -5846,8 +6199,8 @@
         closeOnlineConsentModal(true);
         closeDrawOfferModal();
 
-        if (notifyPeer && onlineConn && onlineConn.open) {
-          try { onlineConn.send({ type: 'leave' }); } catch (e) {}
+        if (notifyPeer && isOnlineTransportOpen()) {
+          sendOnlinePacket({ type: 'leave' });
         }
 
         const oldConn = onlineConn;
@@ -5860,6 +6213,20 @@
         if (oldPeer) {
           try { oldPeer.destroy(); } catch (e) {}
         }
+        const oldRelay = relaySession;
+        relaySession = null;
+        if (oldRelay) {
+          oldRelay.suppressIncoming = true;
+          oldRelay.clearTimers();
+          if (notifyPeer && oldRelay.peerConnected) {
+            setTimeout(() => { try { oldRelay.destroy(); } catch (e) {} }, 90);
+          } else {
+            try { oldRelay.destroy(); } catch (e) {}
+          }
+        }
+
+        seenPacketIds.clear();
+        seenPacketOrder.length = 0;
 
         gameState.onlineConnected = false;
         gameState.onlineRole = null;
@@ -5972,6 +6339,263 @@
         }
       }
 
+      function markPeerConnected(role) {
+        clearGuestReconnectTimer();
+        guestReconnectAttempts = 0;
+        peerLeftIntentionally = false;
+        if (relaySession) {
+          relaySession.clearTimers();
+        }
+        if (gameState.joinTimeoutId) {
+          clearTimeout(gameState.joinTimeoutId);
+          gameState.joinTimeoutId = null;
+        }
+
+        const alreadyConnected = gameState.onlineConnected;
+        gameState.onlineConnected = true;
+        gameState.onlineRole = role;
+        gameState.opponentMode = 'online';
+        document.getElementById('select-opponent').value = 'online';
+        const roleLabel = role === 1 ? 'Белые (Хост)' : 'Чёрные (Гость)';
+        setOnlineStatus(`Подключено! Вы играете за: ${roleLabel}`, 'connected');
+        startOnlineHeartbeat();
+
+        if (!alreadyConnected) {
+          if (role === 1) {
+            if (!hasMatchStartedInRoom) {
+              hasMatchStartedInRoom = true;
+              gameState.scores = { 1: 0, 2: 0 };
+              restartGame(true, false);
+              sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals, protoVer: 2 });
+              sendOnlinePacket(buildFullSyncPayload(true));
+            } else {
+              sendOnlinePacket(buildFullSyncPayload(false));
+              updateHUD();
+            }
+          } else {
+            if (!hasMatchStartedInRoom) {
+              restartGame(true, false);
+            } else {
+              updateHUD();
+              sendOnlinePacket({ type: 'sync_req' });
+            }
+          }
+        } else if (role === 1 && hasMatchStartedInRoom) {
+          sendOnlinePacket(buildFullSyncPayload(false));
+        }
+
+        setTimeout(() => {
+          if (gameState.onlineConnected && !onlineModal.classList.contains('hidden')) {
+            closeOnlineModal();
+          }
+        }, 600);
+      }
+
+      function handleOnlinePacket(data) {
+        if (!data || typeof data !== 'object') return;
+        if (!recordSeenPacketId(data._mid)) return;
+        lastPeerPacketAt = Date.now();
+
+        if (data.type === 'ping') {
+          sendOnlinePacket({ type: 'pong', t: data.t });
+          return;
+        }
+        if (data.type === 'pong') return;
+
+        if (data.type === 'room_full') {
+          peerLeftIntentionally = true;
+          disconnectOnlineSession({ keepOnlineMode: true, notifyPeer: false });
+          setOnlineStatus('Комната уже занята другими игроками', 'idle');
+          return;
+        }
+
+        if (data.type === 'leave') {
+          stopOnlineHeartbeat();
+          clearGuestReconnectTimer();
+          closeOnlineConsentModal(true);
+          gameState.onlineConnected = false;
+          const leavingConn = onlineConn;
+          onlineConn = null;
+          if (leavingConn) {
+            try { leavingConn.close(); } catch (e) {}
+          }
+          if (relaySession) {
+            relaySession.peerConnected = false;
+            relaySession.boundGuestTopic = '';
+          }
+          if (gameState.onlineRole === 1) {
+            boundGuestToken = '';
+            hasMatchStartedInRoom = false;
+            setOnlineStatus(`Соперник покинул комнату. Код ${gameState.roomCode} свободен`, 'waiting');
+            showTransientStatus('Соперник покинул комнату', 3600);
+          } else {
+            peerLeftIntentionally = true;
+            setOnlineStatus('Хост закрыл комнату', 'idle');
+            showTransientStatus('Хост закрыл комнату', 3600);
+          }
+          updateHUD();
+          return;
+        }
+
+        if (data.type === 'sync_req') {
+          if (gameState.onlineRole === 1) {
+            sendOnlinePacket(buildFullSyncPayload(false));
+          }
+          return;
+        }
+
+        if (data.type === 'full_sync') {
+          if (gameState.onlineRole === 2) {
+            hasMatchStartedInRoom = true;
+            applyFullSyncPayload(data);
+          }
+          return;
+        }
+
+        if (data.type === 'sync_init') {
+          if (typeof data.useDiagonals === 'boolean') {
+            gameState.useDiagonals = data.useDiagonals;
+            document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
+            diagonalGroovesGroup.visible = gameState.useDiagonals;
+          }
+          if (!hasMatchStartedInRoom) {
+            hasMatchStartedInRoom = true;
+            restartGame(true, false);
+          }
+          return;
+        }
+
+        const peerRole = gameState.onlineRole === 1 ? 2 : 1;
+
+        if (data.type === 'place') {
+          if (typeof data.seq === 'number') {
+            if (data.seq < gameState.history.length) return;
+            if (data.seq > gameState.history.length) {
+              requestOrSendFullSync();
+              return;
+            }
+          }
+          if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
+              gameState.winner !== 0 || gameState.drawOfferActive ||
+              gameState.turn !== peerRole || getPhase() !== 'placement' ||
+              !Number.isInteger(data.nodeIdx) || data.nodeIdx < 0 || data.nodeIdx >= 9 ||
+              gameState.board[data.nodeIdx] !== 0) {
+            requestOrSendFullSync();
+            return;
+          }
+          if (onlineConsent.active) {
+            closeOnlineConsentModal(true);
+            showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
+          }
+          cancelActivePieceDrag();
+          const prefPiece = typeof data.traySlot === 'number'
+            ? pieces3D.find(p => p.userData.player === peerRole && p.userData.nodeIndex === null && p.userData.traySlot === data.traySlot)
+            : null;
+          executePlacement(data.nodeIdx, true, prefPiece || null);
+        } else if (data.type === 'move') {
+          if (typeof data.seq === 'number') {
+            if (data.seq < gameState.history.length) return;
+            if (data.seq > gameState.history.length) {
+              requestOrSendFullSync();
+              return;
+            }
+          }
+          if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
+              gameState.winner !== 0 || gameState.drawOfferActive ||
+              gameState.turn !== peerRole || getPhase() !== 'movement' ||
+              !Number.isInteger(data.fromIdx) || data.fromIdx < 0 || data.fromIdx >= 9 ||
+              !Number.isInteger(data.toIdx) || data.toIdx < 0 || data.toIdx >= 9 ||
+              gameState.board[data.fromIdx] !== peerRole || gameState.board[data.toIdx] !== 0 ||
+              !getNeighbors(data.fromIdx).includes(data.toIdx)) {
+            requestOrSendFullSync();
+            return;
+          }
+          if (onlineConsent.active) {
+            closeOnlineConsentModal(true);
+            showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
+          }
+          cancelActivePieceDrag();
+          executeMovement(data.fromIdx, data.toIdx, true);
+        } else if (data.type === 'action_req') {
+          handleIncomingOnlineActionRequest(data);
+        } else if (data.type === 'action_resp') {
+          handleIncomingOnlineActionResponse(data);
+        } else if (data.type === 'action_cancel') {
+          handleIncomingOnlineActionCancel(data);
+        } else if (data.type === 'undo') {
+          if (gameState.winner === 0 && gameState.history.length > 0 && !gameState.drawOfferActive && !onlineConsent.active) {
+            openOnlineConsentModal('incoming', 'undo', 'legacy_' + Date.now(), gameState.history.length, {}, true);
+          } else {
+            requestOrSendFullSync();
+          }
+        } else if (data.type === 'restart') {
+          const reqAction = gameState.winner !== 0 ? 'rematch' : 'restart';
+          if (!onlineConsent.active && (gameState.winner !== 0 || gameState.history.length > 0)) {
+            openOnlineConsentModal('incoming', reqAction, 'legacy_' + Date.now(), gameState.history.length, {}, true);
+          } else {
+            requestOrSendFullSync();
+          }
+        } else if (data.type === 'draw_vote') {
+          const voter = gameState.onlineRole === 1 ? 2 : 1;
+          submitDrawVote(voter, Boolean(data.accept), true);
+        }
+      }
+
+      function ensureGuestRelay(code) {
+        if (relaySession && relaySession.active && relaySession.code === code) {
+          if (relaySession.openBrokerCount() > 0 && !gameState.onlineConnected) {
+            relaySession.publish(relaySession.hostTopic, {
+              type: 'relay_hello',
+              guestToken: myGuestToken,
+              protoVer: 2,
+              _mid: 'rh_' + Date.now() + '_' + myInstanceTag + '_' + (++outboundMsgSeq)
+            });
+          }
+          return;
+        }
+        if (relaySession) {
+          try { relaySession.destroy(); } catch (e) {}
+          relaySession = null;
+        }
+        relaySession = createRelaySession(
+          2,
+          code,
+          () => {
+            if (!relaySession || !relaySession.active || peerLeftIntentionally || gameState.onlineConnected) return;
+            const sendHello = () => {
+              if (!relaySession || !relaySession.active || gameState.onlineConnected || peerLeftIntentionally) {
+                if (relaySession) relaySession.stopHello();
+                return;
+              }
+              relaySession.publish(relaySession.hostTopic, {
+                type: 'relay_hello',
+                guestToken: myGuestToken,
+                protoVer: 2,
+                _mid: 'rh_' + Date.now() + '_' + myInstanceTag + '_' + (++outboundMsgSeq)
+              });
+            };
+            sendHello();
+            if (!relaySession.helloTimer) {
+              relaySession.helloTimer = setInterval(sendHello, 1800);
+            }
+          },
+          (_topic, data) => {
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'relay_welcome') {
+              if (!recordSeenPacketId(data._mid)) return;
+              if (relaySession) {
+                relaySession.peerConnected = true;
+                relaySession.clearTimers();
+              }
+              markPeerConnected(2);
+              return;
+            }
+            handleOnlinePacket(data);
+          }
+        );
+        relaySession.start();
+      }
+
       function scheduleGuestReconnect() {
         if (gameState.onlineRole !== 2 || !gameState.roomCode || peerLeftIntentionally || !hasMatchStartedInRoom) return;
         const delays = [1200, 3000, 6000, 10000, 15000];
@@ -5991,6 +6615,20 @@
         }, waitMs);
       }
 
+      function setGuestJoinTimeout(code) {
+        if (gameState.joinTimeoutId) clearTimeout(gameState.joinTimeoutId);
+        gameState.joinTimeoutId = setTimeout(() => {
+          if (!gameState.onlineConnected) {
+            if (hasMatchStartedInRoom && !peerLeftIntentionally) {
+              scheduleGuestReconnect();
+            } else {
+              if (relaySession) relaySession.stopHello();
+              setOnlineStatus('Не удалось связаться с комнатой ' + code + '. Проверьте код.', 'idle');
+            }
+          }
+        }, 15000);
+      }
+
       function connectGuestToRoom(code) {
         if (!peerInstance || peerInstance.destroyed || peerInstance.disconnected) return;
         const conn = peerInstance.connect('tmm3d-royal-' + code, {
@@ -5999,21 +6637,17 @@
           metadata: { guestToken: myGuestToken, protoVer: 2 }
         });
         bindDataConnection(conn, 2);
-        if (gameState.joinTimeoutId) clearTimeout(gameState.joinTimeoutId);
-        gameState.joinTimeoutId = setTimeout(() => {
-          if (!gameState.onlineConnected) {
-            if (hasMatchStartedInRoom && !peerLeftIntentionally) {
-              scheduleGuestReconnect();
-            } else {
-              setOnlineStatus('Не удалось связаться с комнатой ' + code + '. Проверьте код.', 'idle');
-            }
-          }
-        }, 15000);
+        setGuestJoinTimeout(code);
       }
 
       function attemptGuestReconnect() {
         if (gameState.onlineRole !== 2 || !gameState.roomCode || peerLeftIntentionally || gameState.onlineConnected) return;
         const code = gameState.roomCode;
+        ensureGuestRelay(code);
+        if (forceRelayOnly || typeof Peer === 'undefined') {
+          setGuestJoinTimeout(code);
+          return;
+        }
         if (!peerInstance || peerInstance.destroyed) {
           const peer = new Peer({ debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
           peerInstance = peer;
@@ -6030,7 +6664,7 @@
             }, 1500);
           });
           peer.on('error', (err) => {
-            if (peer !== peerInstance) return;
+            if (peer !== peerInstance || gameState.onlineConnected) return;
             if (err && err.type === 'peer-unavailable') {
               if (gameState.joinTimeoutId) {
                 clearTimeout(gameState.joinTimeoutId);
@@ -6039,14 +6673,16 @@
               scheduleGuestReconnect();
               return;
             }
-            if (!gameState.onlineConnected) scheduleGuestReconnect();
+            if (!gameState.onlineConnected && (!relaySession || relaySession.openBrokerCount() === 0)) {
+              scheduleGuestReconnect();
+            }
           });
         } else if (peerInstance.disconnected) {
           try { peerInstance.reconnect(); } catch (e) {}
           setTimeout(() => {
             if (peerInstance && !peerInstance.destroyed && peerInstance.open && !gameState.onlineConnected) {
               connectGuestToRoom(code);
-            } else if (!gameState.onlineConnected) {
+            } else if (!gameState.onlineConnected && (!relaySession || relaySession.openBrokerCount() === 0)) {
               scheduleGuestReconnect();
             }
           }, 1200);
@@ -6061,202 +6697,25 @@
 
         conn.on('open', () => {
           if (conn !== onlineConn) return;
-          clearGuestReconnectTimer();
-          guestReconnectAttempts = 0;
-          peerLeftIntentionally = false;
-          if (gameState.joinTimeoutId) {
-            clearTimeout(gameState.joinTimeoutId);
-            gameState.joinTimeoutId = null;
+          if (role === 1 && conn.metadata && conn.metadata.guestToken) {
+            boundGuestToken = conn.metadata.guestToken;
           }
-          gameState.onlineConnected = true;
-          gameState.opponentMode = 'online';
-          document.getElementById('select-opponent').value = 'online';
-          const roleLabel = role === 1 ? 'Белые (Хост)' : 'Чёрные (Гость)';
-          setOnlineStatus(`Подключено! Вы играете за: ${roleLabel}`, 'connected');
-          startOnlineHeartbeat();
-
-          if (role === 1) {
-            if (conn.metadata && conn.metadata.guestToken) {
-              boundGuestToken = conn.metadata.guestToken;
-            }
-            if (!hasMatchStartedInRoom) {
-              hasMatchStartedInRoom = true;
-              gameState.scores = { 1: 0, 2: 0 };
-              restartGame(true, false);
-              sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals, protoVer: 2 });
-              sendOnlinePacket(buildFullSyncPayload(true));
-            } else {
-              sendOnlinePacket(buildFullSyncPayload(false));
-              updateHUD();
-            }
-          } else {
-            if (!hasMatchStartedInRoom) {
-              restartGame(true, false);
-            } else {
-              updateHUD();
-              sendOnlinePacket({ type: 'sync_req' });
-            }
-          }
-          setTimeout(() => {
-            if (gameState.onlineConnected && onlineConn === conn && !onlineModal.classList.contains('hidden')) {
-              closeOnlineModal();
-            }
-          }, 600);
+          markPeerConnected(role);
         });
 
         conn.on('data', (data) => {
           if (conn !== onlineConn) return;
-          if (!data || typeof data !== 'object') return;
-          lastPeerPacketAt = Date.now();
-
-          if (data.type === 'ping') {
-            sendOnlinePacket({ type: 'pong', t: data.t });
-            return;
-          }
-          if (data.type === 'pong') return;
-
-          if (data.type === 'room_full') {
-            peerLeftIntentionally = true;
-            disconnectOnlineSession({ keepOnlineMode: true, notifyPeer: false });
-            setOnlineStatus('Комната уже занята другими игроками', 'idle');
-            return;
-          }
-
-          if (data.type === 'leave') {
-            stopOnlineHeartbeat();
-            clearGuestReconnectTimer();
-            closeOnlineConsentModal(true);
-            gameState.onlineConnected = false;
-            const leavingConn = onlineConn;
-            onlineConn = null;
-            if (leavingConn) {
-              try { leavingConn.close(); } catch (e) {}
-            }
-            if (gameState.onlineRole === 1) {
-              boundGuestToken = '';
-              hasMatchStartedInRoom = false;
-              setOnlineStatus(`Соперник покинул комнату. Код ${gameState.roomCode} свободен`, 'waiting');
-              showTransientStatus('Соперник покинул комнату', 3600);
-            } else {
-              peerLeftIntentionally = true;
-              setOnlineStatus('Хост закрыл комнату', 'idle');
-              showTransientStatus('Хост закрыл комнату', 3600);
-            }
-            updateHUD();
-            return;
-          }
-
-          if (data.type === 'sync_req') {
-            if (gameState.onlineRole === 1) {
-              sendOnlinePacket(buildFullSyncPayload(false));
-            }
-            return;
-          }
-
-          if (data.type === 'full_sync') {
-            if (gameState.onlineRole === 2) {
-              hasMatchStartedInRoom = true;
-              applyFullSyncPayload(data);
-            }
-            return;
-          }
-
-          if (data.type === 'sync_init') {
-            if (typeof data.useDiagonals === 'boolean') {
-              gameState.useDiagonals = data.useDiagonals;
-              document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
-              diagonalGroovesGroup.visible = gameState.useDiagonals;
-            }
-            if (!hasMatchStartedInRoom) {
-              hasMatchStartedInRoom = true;
-              restartGame(true, false);
-            }
-            return;
-          }
-
-          const peerRole = gameState.onlineRole === 1 ? 2 : 1;
-
-          if (data.type === 'place') {
-            if (typeof data.seq === 'number') {
-              if (data.seq < gameState.history.length) return;
-              if (data.seq > gameState.history.length) {
-                requestOrSendFullSync();
-                return;
-              }
-            }
-            if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
-                gameState.winner !== 0 || gameState.drawOfferActive ||
-                gameState.turn !== peerRole || getPhase() !== 'placement' ||
-                !Number.isInteger(data.nodeIdx) || data.nodeIdx < 0 || data.nodeIdx >= 9 ||
-                gameState.board[data.nodeIdx] !== 0) {
-              requestOrSendFullSync();
-              return;
-            }
-            if (onlineConsent.active) {
-              closeOnlineConsentModal(true);
-              showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
-            }
-            cancelActivePieceDrag();
-            const prefPiece = typeof data.traySlot === 'number'
-              ? pieces3D.find(p => p.userData.player === peerRole && p.userData.nodeIndex === null && p.userData.traySlot === data.traySlot)
-              : null;
-            executePlacement(data.nodeIdx, true, prefPiece || null);
-          } else if (data.type === 'move') {
-            if (typeof data.seq === 'number') {
-              if (data.seq < gameState.history.length) return;
-              if (data.seq > gameState.history.length) {
-                requestOrSendFullSync();
-                return;
-              }
-            }
-            if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
-                gameState.winner !== 0 || gameState.drawOfferActive ||
-                gameState.turn !== peerRole || getPhase() !== 'movement' ||
-                !Number.isInteger(data.fromIdx) || data.fromIdx < 0 || data.fromIdx >= 9 ||
-                !Number.isInteger(data.toIdx) || data.toIdx < 0 || data.toIdx >= 9 ||
-                gameState.board[data.fromIdx] !== peerRole || gameState.board[data.toIdx] !== 0 ||
-                !getNeighbors(data.fromIdx).includes(data.toIdx)) {
-              requestOrSendFullSync();
-              return;
-            }
-            if (onlineConsent.active) {
-              closeOnlineConsentModal(true);
-              showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
-            }
-            cancelActivePieceDrag();
-            executeMovement(data.fromIdx, data.toIdx, true);
-          } else if (data.type === 'action_req') {
-            handleIncomingOnlineActionRequest(data);
-          } else if (data.type === 'action_resp') {
-            handleIncomingOnlineActionResponse(data);
-          } else if (data.type === 'action_cancel') {
-            handleIncomingOnlineActionCancel(data);
-          } else if (data.type === 'undo') {
-            // Require explicit consent even for raw/legacy undo packets
-            if (gameState.winner === 0 && gameState.history.length > 0 && !gameState.drawOfferActive && !onlineConsent.active) {
-              openOnlineConsentModal('incoming', 'undo', 'legacy_' + Date.now(), gameState.history.length, {}, true);
-            } else {
-              requestOrSendFullSync();
-            }
-          } else if (data.type === 'restart') {
-            // Require explicit consent even for raw/legacy restart packets
-            const reqAction = gameState.winner !== 0 ? 'rematch' : 'restart';
-            if (!onlineConsent.active && (gameState.winner !== 0 || gameState.history.length > 0)) {
-              openOnlineConsentModal('incoming', reqAction, 'legacy_' + Date.now(), gameState.history.length, {}, true);
-            } else {
-              requestOrSendFullSync();
-            }
-          } else if (data.type === 'draw_vote') {
-            const voter = gameState.onlineRole === 1 ? 2 : 1;
-            submitDrawVote(voter, Boolean(data.accept), true);
-          }
+          handleOnlinePacket(data);
         });
 
         conn.on('close', () => {
           if (conn !== onlineConn) return;
+          onlineConn = null;
+          if (relaySession && relaySession.active && relaySession.peerConnected && relaySession.openBrokerCount() > 0) {
+            return;
+          }
           stopOnlineHeartbeat();
           closeOnlineConsentModal(true);
-          onlineConn = null;
           gameState.onlineConnected = false;
 
           if (peerLeftIntentionally) {
@@ -6276,7 +6735,7 @@
 
         conn.on('error', () => {
           if (conn !== onlineConn) return;
-          if (!gameState.onlineConnected && !hasMatchStartedInRoom) {
+          if (!gameState.onlineConnected && !hasMatchStartedInRoom && (!relaySession || relaySession.openBrokerCount() === 0)) {
             setOnlineStatus('Ошибка соединения с соперником', 'idle');
           }
         });
@@ -6285,7 +6744,9 @@
       function startHostingRoom(retryCount = 0) {
         if (typeof retryCount !== 'number') retryCount = 0;
         if (retryCount === 0) sound.playSelect();
-        if (typeof Peer === 'undefined') {
+        const hasWebSocket = typeof WebSocket !== 'undefined';
+        const canUsePeerJS = !forceRelayOnly && typeof Peer !== 'undefined';
+        if (!canUsePeerJS && !hasWebSocket) {
           setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
           return;
         }
@@ -6302,13 +6763,12 @@
 
         const code = String(Math.floor(1000 + Math.random() * 9000));
         const peerId = 'tmm3d-royal-' + code;
-        setOnlineStatus('Создание комнаты на сервере сигналинга...', 'waiting');
+        let hostReady = false;
+        setOnlineStatus('Создание комнаты...', 'waiting');
 
-        const peer = new Peer(peerId, { debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
-        peerInstance = peer;
-
-        peer.on('open', () => {
-          if (peer !== peerInstance) return;
+        function markHostRoomReady() {
+          if (hostReady || peerLeftIntentionally) return;
+          hostReady = true;
           gameState.roomCode = code;
           gameState.onlineRole = 1;
           gameState.opponentMode = 'online';
@@ -6316,19 +6776,82 @@
           document.getElementById('select-opponent').value = 'online';
           hostRoomCodeEl.textContent = code;
           hostCodeBox.classList.remove('hidden');
-          setOnlineStatus(`Ожидание игрока... Код комнаты: ${code}`, 'waiting');
+          if (!gameState.onlineConnected) {
+            setOnlineStatus(`Ожидание игрока... Код комнаты: ${code}`, 'waiting');
+          }
           updateHUD();
+        }
+
+        if (hasWebSocket) {
+          relaySession = createRelaySession(
+            1,
+            code,
+            () => {
+              markHostRoomReady();
+            },
+            (_topic, data) => {
+              if (!data || typeof data !== 'object') return;
+              if (data.type === 'relay_hello') {
+                if (!recordSeenPacketId(data._mid)) return;
+                const gTok = typeof data.guestToken === 'string' ? data.guestToken : '';
+                if (!gTok) return;
+                const currentToken = boundGuestToken || (onlineConn && onlineConn.metadata && onlineConn.metadata.guestToken) || '';
+                if ((isOnlineTransportOpen() || onlineConn) && currentToken && gTok !== currentToken) {
+                  if (relaySession) {
+                    relaySession.publish(`tmm3d/royal/v2/room/${code}/guest/${gTok}`, {
+                      type: 'room_full',
+                      _mid: 'rf_' + Date.now() + '_' + myInstanceTag + '_' + (++outboundMsgSeq)
+                    });
+                  }
+                  return;
+                }
+                boundGuestToken = gTok;
+                if (relaySession) {
+                  relaySession.boundGuestTopic = `tmm3d/royal/v2/room/${code}/guest/${gTok}`;
+                  relaySession.peerConnected = true;
+                  relaySession.publish(relaySession.boundGuestTopic, {
+                    type: 'relay_welcome',
+                    protoVer: 2,
+                    _mid: 'rw_' + Date.now() + '_' + myInstanceTag + '_' + (++outboundMsgSeq)
+                  });
+                }
+                markPeerConnected(1);
+                return;
+              }
+              handleOnlinePacket(data);
+            }
+          );
+          relaySession.start();
+        }
+
+        setTimeout(() => {
+          if (!hostReady && gameState.opponentMode === 'online' && gameState.onlineRole === null && !peerLeftIntentionally &&
+              ((hasWebSocket && relaySession && relaySession.code === code) || peerInstance)) {
+            setOnlineStatus('Не удалось создать комнату. Проверьте подключение к интернету.', 'idle');
+          }
+        }, 12000);
+
+        if (!canUsePeerJS) return;
+
+        const peer = new Peer(peerId, { debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
+        peerInstance = peer;
+
+        peer.on('open', () => {
+          if (peer !== peerInstance) return;
+          markHostRoomReady();
         });
 
         peer.on('connection', (incomingConn) => {
           if (peer !== peerInstance) return;
-          if (onlineConn) {
-            const incomingToken = incomingConn.metadata && incomingConn.metadata.guestToken;
-            const currentToken = boundGuestToken || (onlineConn.metadata && onlineConn.metadata.guestToken) || '';
+          const incomingToken = incomingConn.metadata && incomingConn.metadata.guestToken;
+          const currentToken = boundGuestToken || (onlineConn && onlineConn.metadata && onlineConn.metadata.guestToken) || '';
+          if (onlineConn || (relaySession && relaySession.peerConnected && currentToken && incomingToken && incomingToken !== currentToken)) {
             if (currentToken && incomingToken && incomingToken === currentToken) {
-              const oldConn = onlineConn;
-              onlineConn = null;
-              try { oldConn.close(); } catch (e) {}
+              if (onlineConn) {
+                const oldConn = onlineConn;
+                onlineConn = null;
+                try { oldConn.close(); } catch (e) {}
+              }
               bindDataConnection(incomingConn, 1);
             } else {
               incomingConn.on('open', () => {
@@ -6352,12 +6875,12 @@
 
         peer.on('error', (err) => {
           if (peer !== peerInstance) return;
-          if (err && err.type === 'unavailable-id' && retryCount < 5) {
+          if (err && err.type === 'unavailable-id' && !hasMatchStartedInRoom && !isOnlineTransportOpen() && retryCount < 5) {
             startHostingRoom(retryCount + 1);
             return;
           }
-          if (gameState.onlineConnected && onlineConn && onlineConn.open &&
-              err && ['network', 'disconnected', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
+          if ((isOnlineTransportOpen() || (relaySession && (relaySession.openBrokerCount() > 0 || relaySession.connectingCount() > 0))) &&
+              err && ['network', 'disconnected', 'server-error', 'socket-error', 'socket-closed', 'webrtc'].includes(err.type)) {
             setTimeout(() => {
               if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
                 try { peer.reconnect(); } catch (e) {}
@@ -6365,13 +6888,17 @@
             }, 1500);
             return;
           }
-          setOnlineStatus('Не удалось создать комнату (' + (err.type || 'сеть') + '). Попробуйте ещё раз.', 'idle');
+          if (!hostReady && (!relaySession || relaySession.openBrokerCount() === 0)) {
+            setOnlineStatus('Не удалось создать комнату (' + (err.type || 'сеть') + '). Попробуйте ещё раз.', 'idle');
+          }
         });
       }
 
       function joinExistingRoom() {
         sound.playSelect();
-        if (typeof Peer === 'undefined') {
+        const hasWebSocket = typeof WebSocket !== 'undefined';
+        const canUsePeerJS = !forceRelayOnly && typeof Peer !== 'undefined';
+        if (!canUsePeerJS && !hasWebSocket) {
           setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
           return;
         }
@@ -6404,11 +6931,18 @@
         restartGame(true, false);
         setOnlineStatus(`Подключение к комнате ${rawCode}...`, 'waiting');
 
+        if (hasWebSocket) {
+          ensureGuestRelay(rawCode);
+        }
+        setGuestJoinTimeout(rawCode);
+
+        if (!canUsePeerJS) return;
+
         const peer = new Peer({ debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
         peerInstance = peer;
 
         peer.on('open', () => {
-          if (peer !== peerInstance) return;
+          if (peer !== peerInstance || gameState.onlineConnected) return;
           connectGuestToRoom(rawCode);
         });
 
@@ -6422,26 +6956,36 @@
         });
 
         peer.on('error', (err) => {
-          if (peer !== peerInstance) return;
+          if (peer !== peerInstance || gameState.onlineConnected) return;
           if (err && err.type === 'peer-unavailable') {
-            if (gameState.joinTimeoutId) {
-              clearTimeout(gameState.joinTimeoutId);
-              gameState.joinTimeoutId = null;
-            }
             if (!hasMatchStartedInRoom) {
-              setOnlineStatus(`Комната ${rawCode} не найдена. Проверьте 4-значный код.`, 'idle');
+              if (relaySession && relaySession.active && (relaySession.openBrokerCount() > 0 || relaySession.connectingCount() > 0)) {
+                if (!relaySession.probeFailTimer) {
+                  relaySession.probeFailTimer = setTimeout(() => {
+                    if (relaySession) relaySession.probeFailTimer = null;
+                    if (!gameState.onlineConnected && !hasMatchStartedInRoom && !peerLeftIntentionally) {
+                      if (relaySession) relaySession.stopHello();
+                      if (gameState.joinTimeoutId) {
+                        clearTimeout(gameState.joinTimeoutId);
+                        gameState.joinTimeoutId = null;
+                      }
+                      setOnlineStatus(`Комната ${rawCode} не найдена. Проверьте 4-значный код.`, 'idle');
+                    }
+                  }, 3500);
+                }
+              } else {
+                if (gameState.joinTimeoutId) {
+                  clearTimeout(gameState.joinTimeoutId);
+                  gameState.joinTimeoutId = null;
+                }
+                setOnlineStatus(`Комната ${rawCode} не найдена. Проверьте 4-значный код.`, 'idle');
+              }
             } else if (!peerLeftIntentionally) {
               scheduleGuestReconnect();
             }
             return;
           }
-          if (gameState.onlineConnected && onlineConn && onlineConn.open &&
-              err && ['network', 'disconnected', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
-            setTimeout(() => {
-              if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
-                try { peer.reconnect(); } catch (e) {}
-              }
-            }, 1500);
+          if (isOnlineTransportOpen() || (relaySession && relaySession.active && (relaySession.openBrokerCount() > 0 || relaySession.connectingCount() > 0))) {
             return;
           }
           if (!hasMatchStartedInRoom) {
@@ -6477,7 +7021,7 @@
         if (peerInstance && !peerInstance.destroyed && peerInstance.disconnected) {
           try { peerInstance.reconnect(); } catch (e) {}
         }
-        if (onlineConn && onlineConn.open) {
+        if (isOnlineTransportOpen()) {
           sendOnlinePacket({ type: 'ping', t: Date.now() });
         } else if (gameState.onlineRole === 2 && gameState.roomCode && hasMatchStartedInRoom && !peerLeftIntentionally) {
           attemptGuestReconnect();
@@ -6562,7 +7106,7 @@
       const selectOpponent = document.getElementById('select-opponent');
       document.getElementById('btn-mode').addEventListener('click', () => {
         sound.playSelect();
-        if (gameState.opponentMode === 'online' && (gameState.onlineConnected || peerInstance)) {
+        if (gameState.opponentMode === 'online' && (gameState.onlineConnected || peerInstance || relaySession)) {
           openOnlineModal();
           return;
         }
@@ -6588,7 +7132,7 @@
       selectOpponent.addEventListener('change', (e) => {
         const nextMode = e.target.value;
         const wasOnline = gameState.opponentMode === 'online';
-        if (wasOnline && nextMode !== 'online' && (gameState.onlineConnected || peerInstance || gameState.roomCode)) {
+        if (wasOnline && nextMode !== 'online' && (gameState.onlineConnected || peerInstance || relaySession || gameState.roomCode)) {
           disconnectOnlineSession({ keepOnlineMode: true });
         }
         if (!wasOnline && nextMode === 'online') {
@@ -6926,7 +7470,7 @@
           let refreshing = false;
           navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!hadController || refreshing) return;
-            if (gameState.history.length === 0 && !gameState.onlineConnected && !peerInstance) {
+            if (gameState.history.length === 0 && !gameState.onlineConnected && !peerInstance && !relaySession) {
               refreshing = true;
               window.location.reload();
             }

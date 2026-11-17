@@ -1,5 +1,5 @@
 ﻿// Service Worker for Three Men's Morris 3D (iPhone iOS PWA & GitHub Pages)
-const CACHE_NAME = 'three-mens-morris-3d-v1.9';
+const CACHE_NAME = 'three-mens-morris-3d-v2.0';
 
 const CORE_ASSETS = [
   './',

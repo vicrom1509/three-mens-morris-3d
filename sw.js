@@ -1,5 +1,5 @@
 ﻿// Service Worker for Three Men's Morris 3D (iPhone iOS PWA & GitHub Pages)
-const CACHE_NAME = 'three-mens-morris-3d-v1.8';
+const CACHE_NAME = 'three-mens-morris-3d-v1.9';
 
 const CORE_ASSETS = [
   './',
@@ -54,6 +54,25 @@ self.addEventListener('fetch', (event) => {
   }
 
   const isSameOrigin = req.url.startsWith(self.location.origin);
+  const urlPath = new URL(req.url).pathname;
+  const isHtmlNav = req.mode === 'navigate' || (isSameOrigin && (urlPath.endsWith('/') || urlPath.endsWith('.html')));
+
+  if (isHtmlNav) {
+    event.respondWith(
+      fetch(req.url, { cache: 'no-cache' })
+        .then((netResp) => {
+          if (netResp && netResp.status === 200) {
+            const copy = netResp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return netResp;
+        })
+        .catch(() =>
+          caches.match(req, { ignoreSearch: isSameOrigin }).then((cachedResp) => cachedResp || caches.match('./index.html'))
+        )
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(req, { ignoreSearch: isSameOrigin }).then((cachedResp) => {

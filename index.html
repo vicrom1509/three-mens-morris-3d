@@ -1622,7 +1622,8 @@
         onlineConnected: false,
         roomCode: '',
         aiTimerId: null,
-        joinTimeoutId: null
+        joinTimeoutId: null,
+        victoryTimerId: null
       };
 
       let offlineScores = { 1: 0, 2: 0 };
@@ -4652,6 +4653,17 @@
         }
       }
 
+      function scheduleVictoryModal(winner, byBlockade = false, delayMs = 650) {
+        if (gameState.victoryTimerId) {
+          clearTimeout(gameState.victoryTimerId);
+          gameState.victoryTimerId = null;
+        }
+        gameState.victoryTimerId = setTimeout(() => {
+          gameState.victoryTimerId = null;
+          showVictoryModal(winner, byBlockade);
+        }, delayMs);
+      }
+
       function declareMutualDraw() {
         closeDrawOfferModal();
         gameState.winner = 3;
@@ -4661,7 +4673,7 @@
         gameState.hintEdge = null;
         updateHUD();
         sound.playWinChord();
-        setTimeout(() => showVictoryModal(3, false), 350);
+        scheduleVictoryModal(3, false, 350);
       }
 
       function submitDrawVote(player, accept, fromNetwork = false) {
@@ -4703,7 +4715,7 @@
           updateVictoryBeam();
           updateHUD();
           sound.playWinChord();
-          setTimeout(() => showVictoryModal(winRes.winner), 650);
+          scheduleVictoryModal(winRes.winner, false, 650);
           return;
         }
 
@@ -4721,7 +4733,7 @@
           saveSettings();
           updateHUD();
           sound.playWinChord();
-          setTimeout(() => showVictoryModal(prevPlayer, true), 550);
+          scheduleVictoryModal(prevPlayer, true, 550);
           return;
         }
 
@@ -5206,6 +5218,7 @@
       // 10. UI EVENT LISTENERS & MODALS
       // =========================================================================
       function showVictoryModal(winner, byBlockade = false) {
+        if (gameState.winner === 0 || gameState.winner !== winner) return;
         const modal = document.getElementById('victory-modal');
         const subtitle = document.getElementById('victory-subtitle');
         const title = document.getElementById('victory-title');
@@ -5240,6 +5253,10 @@
       }
 
       function hideVictoryModal() {
+        if (gameState.victoryTimerId) {
+          clearTimeout(gameState.victoryTimerId);
+          gameState.victoryTimerId = null;
+        }
         const modal = document.getElementById('victory-modal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
@@ -5879,6 +5896,22 @@
             sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: 'undo', accept: false, reason: 'stale' });
             return;
           }
+        } else if (data.action === 'restart') {
+          if (gameState.winner !== 0 || gameState.history.length === 0 || gameState.drawOfferActive ||
+              (typeof data.baseSeq === 'number' && data.baseSeq !== gameState.history.length)) {
+            sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: 'restart', accept: false, reason: 'stale' });
+            return;
+          }
+        } else if (data.action === 'rematch') {
+          if (gameState.winner === 0) {
+            sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: 'rematch', accept: false, reason: 'stale' });
+            return;
+          }
+        } else if (data.action === 'change_diagonals') {
+          if (gameState.drawOfferActive) {
+            sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: 'change_diagonals', accept: false, reason: 'stale' });
+            return;
+          }
         }
 
         if (onlineConsent.active) {
@@ -5975,7 +6008,7 @@
               setOnlineStatus('Не удалось связаться с комнатой ' + code + '. Проверьте код.', 'idle');
             }
           }
-        }, 10000);
+        }, 15000);
       }
 
       function attemptGuestReconnect() {
@@ -6065,7 +6098,7 @@
             }
           }
           setTimeout(() => {
-            if (gameState.onlineConnected && onlineConn === conn) {
+            if (gameState.onlineConnected && onlineConn === conn && !onlineModal.classList.contains('hidden')) {
               closeOnlineModal();
             }
           }, 600);
@@ -6289,9 +6322,10 @@
 
         peer.on('connection', (incomingConn) => {
           if (peer !== peerInstance) return;
-          if (onlineConn && onlineConn.open) {
+          if (onlineConn) {
             const incomingToken = incomingConn.metadata && incomingConn.metadata.guestToken;
-            if (boundGuestToken && incomingToken && incomingToken === boundGuestToken) {
+            const currentToken = boundGuestToken || (onlineConn.metadata && onlineConn.metadata.guestToken) || '';
+            if (currentToken && incomingToken && incomingToken === currentToken) {
               const oldConn = onlineConn;
               onlineConn = null;
               try { oldConn.close(); } catch (e) {}
@@ -6555,7 +6589,7 @@
         const nextMode = e.target.value;
         const wasOnline = gameState.opponentMode === 'online';
         if (wasOnline && nextMode !== 'online' && (gameState.onlineConnected || peerInstance || gameState.roomCode)) {
-          disconnectOnlineSession();
+          disconnectOnlineSession({ keepOnlineMode: true });
         }
         if (!wasOnline && nextMode === 'online') {
           offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };

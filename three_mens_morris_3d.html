@@ -782,7 +782,7 @@
 
       <!-- Button for Online / AI mode (single local player confirms) -->
       <div id="draw-single-actions" class="hidden items-center gap-2 mt-4">
-        <button id="btn-draw-agree-single" type="button" class="action-btn action-btn-gold flex-1 py-2.5">
+        <button id="btn-draw-agree-single" type="button" class="action-btn action-btn-gold flex-1 w-full py-2.5">
           Согласиться на ничью
         </button>
       </div>
@@ -790,6 +790,35 @@
       <div class="flex items-center mt-2.5">
         <button id="btn-draw-decline" type="button" class="action-btn w-full py-2">
           Продолжить партию
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONLINE ACTION CONSENT MODAL (Undo / Restart / Rematch / Rules / Score Reset) -->
+  <div id="online-consent-modal" class="fixed inset-0 z-30 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="glass-modal rounded-3xl p-6 w-full max-w-sm text-center border border-amber-400/40 transform transition-all">
+      <div class="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center bg-amber-500/20 border border-amber-300/50 shadow-lg">
+        <svg class="w-8 h-8 text-amber-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      </div>
+      <p id="consent-subtitle" class="text-[11px] uppercase tracking-widest text-amber-300/80 font-semibold">Сетевая партия</p>
+      <h2 id="consent-title" class="font-serif-title text-2xl font-bold text-amber-100 mt-1">Запрос соперника</h2>
+      <p id="consent-desc" class="text-xs text-stone-300 mt-2 leading-relaxed">
+        Соперник запрашивает подтверждение действия.
+      </p>
+      <div id="consent-incoming-actions" class="flex items-center gap-2.5 mt-5">
+        <button id="btn-consent-decline" type="button" class="action-btn flex-1 py-2.5">
+          Отклонить
+        </button>
+        <button id="btn-consent-accept" type="button" class="action-btn action-btn-gold flex-1 py-2.5">
+          Разрешить
+        </button>
+      </div>
+      <div id="consent-outgoing-actions" class="hidden items-center mt-5">
+        <button id="btn-consent-cancel" type="button" class="action-btn w-full py-2.5">
+          Отменить запрос
         </button>
       </div>
     </div>
@@ -977,7 +1006,7 @@
         <div class="p-3.5 rounded-2xl bg-white/5 border border-amber-500/20 space-y-2.5">
           <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold block">2. Подключиться к другу (Вы — Чёрные)</span>
           <div class="flex items-center gap-2">
-            <input id="input-join-code" type="text" maxlength="8" placeholder="Введите 4 цифры кода..."
+            <input id="input-join-code" type="text" maxlength="64" inputmode="numeric" autocomplete="off" placeholder="Введите 4 цифры кода..."
                    class="flex-1 min-w-0 bg-stone-900/90 border border-amber-500/30 rounded-xl px-3 py-2 text-sm font-semibold tracking-widest text-amber-100 uppercase focus:outline-none" />
             <button id="btn-join-room" type="button" class="action-btn action-btn-gold px-4">
               Войти
@@ -1591,11 +1620,61 @@
         isAnimating: false,
         onlineRole: null,        // null, 1 (Host / White), or 2 (Guest / Black)
         onlineConnected: false,
-        roomCode: ''
+        roomCode: '',
+        aiTimerId: null,
+        joinTimeoutId: null
       };
 
-      let aiTimerId = null;
-      let joinTimeoutId = null;
+      let offlineScores = { 1: 0, 2: 0 };
+
+      // Pointer & 3D piece drag state (hoisted to avoid TDZ when canceling drag from game lifecycle)
+      let isDragging = false;
+      let dragMovedDistance = 0;
+      let startX = 0;
+      let startY = 0;
+      let lastX = 0;
+      let lastY = 0;
+      let pinchStartDist = 0;
+      let pinchStartRadius = 8.8;
+      let potentialDragPiece = null;
+      let draggedPiece = null;
+      let dragHoverSocket = null;
+
+      // Online multiplayer transport, sync & mutual-consent state (hoisted for safe access)
+      const PEER_ICE_CONFIG = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun.cloudflare.com:3478' }
+        ],
+        iceCandidatePoolSize: 4
+      };
+      const myGuestToken = 'g_' + Math.random().toString(36).slice(2) + '_' + Date.now().toString(36);
+      let peerInstance = null;
+      let onlineConn = null;
+      let boundGuestToken = '';
+      let onlineRoomSessionId = '';
+      let hasMatchStartedInRoom = false;
+      let peerLeftIntentionally = false;
+      let guestReconnectTimer = null;
+      let guestReconnectAttempts = 0;
+      let heartbeatIntervalId = null;
+      let lastPeerPacketAt = 0;
+
+      const onlineConsent = {
+        active: false,
+        direction: null, // 'incoming' | 'outgoing'
+        reqId: '',
+        action: '',      // 'undo' | 'restart' | 'rematch' | 'change_diagonals' | 'reset_score'
+        baseSeq: 0,
+        params: null,
+        legacyUndo: false,
+        timeoutId: null
+      };
+      let onlineDeclinedUndoSeq = -1;
+      const onlineActionCooldownUntil = {};
+      let transientStatusNotice = { text: '', until: 0, timerId: null };
 
       function getWinningLines() {
         return gameState.useDiagonals
@@ -4153,20 +4232,29 @@
       adjustCameraForAspect();
       cameraState.radius = cameraState.targetRadius;
 
+      function getDefaultCameraTheta() {
+        const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
+        if (gameState.opponentMode === 'online' && gameState.onlineRole === 2) return Math.PI;
+        if (isAIMode && gameState.humanSide === 2) return Math.PI;
+        if (gameState.autoRotateCamera && gameState.turn === 2 && gameState.opponentMode === 'pvp') return Math.PI;
+        return 0;
+      }
+
       function cycleCameraPreset() {
         sound.playSelect();
         cameraState.presetIndex = (cameraState.presetIndex + 1) % 3;
+        const baseTheta = getDefaultCameraTheta();
         if (cameraState.presetIndex === 0) {
           cameraState.targetPhi = 0.72;
-          cameraState.targetTheta = (gameState.autoRotateCamera && gameState.turn === 2 && gameState.opponentMode === 'pvp') ? Math.PI : 0;
+          cameraState.targetTheta = baseTheta;
         } else if (cameraState.presetIndex === 1) {
           // Pure Top-Down view
           cameraState.targetPhi = 0.06;
-          cameraState.targetTheta = 0;
+          cameraState.targetTheta = baseTheta;
         } else {
           // Warm close-up tabletop perspective
           cameraState.targetPhi = 0.98;
-          cameraState.targetTheta = 0.42;
+          cameraState.targetTheta = baseTheta + 0.42;
         }
         adjustCameraForAspect();
       }
@@ -4208,6 +4296,8 @@
             return;
           }
 
+          if (!isHumanTurnAllowed()) return;
+
           if (phase === 'placement' && gameState.board[idx] === 0) {
             ring.material.opacity = 0.28;
           } else if (phase === 'movement' && gameState.selectedNode !== null) {
@@ -4217,6 +4307,24 @@
             }
           }
         });
+      }
+
+      function showTransientStatus(text, ms = 3400) {
+        if (transientStatusNotice.timerId) {
+          clearTimeout(transientStatusNotice.timerId);
+          transientStatusNotice.timerId = null;
+        }
+        transientStatusNotice.text = text;
+        transientStatusNotice.until = Date.now() + ms;
+        updateHUD();
+        transientStatusNotice.timerId = setTimeout(() => {
+          transientStatusNotice.timerId = null;
+          if (Date.now() >= transientStatusNotice.until) {
+            transientStatusNotice.text = '';
+            transientStatusNotice.until = 0;
+            updateHUD();
+          }
+        }, ms + 20);
       }
 
       function updateHUD() {
@@ -4289,34 +4397,61 @@
           statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0';
         } else {
           phaseBadge.textContent = phase === 'placement' ? 'Фаза 1: Расстановка' : 'Фаза 2: Перемещение';
-          const turnName = gameState.opponentMode === 'online'
-            ? (gameState.turn === gameState.onlineRole ? 'Ваш ход' : 'Ход соперника...')
-            : (isAIMode
-                ? (gameState.turn === gameState.humanSide ? 'Ваш ход' : 'Думает ИИ...')
-                : (gameState.turn === 1 ? 'Ход белых' : 'Ход чёрных'));
-          turnSubtext.textContent = turnName;
-          statusDot.className = gameState.turn === 1
-            ? 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0'
-            : 'w-2 h-2 rounded-full bg-orange-400 flex-shrink-0';
-
-          if (phase === 'placement') {
-            const left = 3 - gameState.placedCount[gameState.turn];
-            statusHint.textContent = `Перетащите фишку из лотка или коснитесь свободной лунки (осталось: ${left})`;
+          if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
+            turnSubtext.textContent = gameState.roomCode ? ('Код: ' + gameState.roomCode) : 'Онлайн';
+            statusDot.className = 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0';
+            statusHint.textContent = gameState.roomCode
+              ? ('Ожидание подключения соперника (код комнаты: ' + gameState.roomCode + ')...')
+              : 'Нажмите на глобус сверху, чтобы создать комнату или войти по коду';
           } else {
-            if (gameState.selectedNode === null) {
-              statusHint.textContent = 'Перетащите свою фигуру по линии или коснитесь её для выбора хода';
+            const turnName = gameState.opponentMode === 'online'
+              ? (gameState.turn === gameState.onlineRole ? 'Ваш ход' : 'Ход соперника...')
+              : (isAIMode
+                  ? (gameState.turn === gameState.humanSide ? 'Ваш ход' : 'Думает ИИ...')
+                  : (gameState.turn === 1 ? 'Ход белых' : 'Ход чёрных'));
+            turnSubtext.textContent = turnName;
+            statusDot.className = gameState.turn === 1
+              ? 'w-2 h-2 rounded-full bg-amber-300 flex-shrink-0'
+              : 'w-2 h-2 rounded-full bg-orange-400 flex-shrink-0';
+
+            if (gameState.opponentMode === 'online' && gameState.turn !== gameState.onlineRole) {
+              statusHint.textContent = 'Ожидание хода соперника...';
+            } else if (phase === 'placement') {
+              const left = 3 - gameState.placedCount[gameState.turn];
+              statusHint.textContent = `Перетащите фишку из лотка или коснитесь свободной лунки (осталось: ${left})`;
             } else {
-              statusHint.textContent = 'Коснитесь подсвеченной соседней лунки или перетащите фигуру туда';
+              if (gameState.selectedNode === null) {
+                statusHint.textContent = 'Перетащите свою фигуру по линии или коснитесь её для выбора хода';
+              } else {
+                statusHint.textContent = 'Коснитесь подсвеченной соседней лунки или перетащите фигуру туда';
+              }
             }
           }
         }
 
-        btnUndo.disabled = gameState.history.length === 0 || gameState.isAnimating;
+        if (transientStatusNotice.text && Date.now() < transientStatusNotice.until) {
+          statusHint.textContent = transientStatusNotice.text;
+        }
+
+        if (gameState.opponentMode === 'online') {
+          btnUndo.disabled = !gameState.onlineConnected ||
+            gameState.winner !== 0 ||
+            gameState.history.length === 0 ||
+            gameState.isAnimating ||
+            gameState.drawOfferActive ||
+            onlineConsent.active ||
+            onlineDeclinedUndoSeq === gameState.history.length;
+        } else {
+          btnUndo.disabled = gameState.history.length === 0 || gameState.isAnimating;
+        }
         syncPiecesWithState();
       }
 
       function saveSettings() {
         try {
+          if (gameState.opponentMode !== 'online') {
+            offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };
+          }
           const payload = {
             opponentMode: gameState.opponentMode === 'online' ? 'pvp' : gameState.opponentMode,
             aiSideMode: gameState.aiSideMode,
@@ -4326,7 +4461,7 @@
             sfxEnabled: sound.enabled,
             musicEnabled: sound.musicEnabled,
             musicVolumeRatio: sound.musicVolumeRatio,
-            scores: gameState.scores
+            scores: { 1: offlineScores[1], 2: offlineScores[2] }
           };
           localStorage.setItem('tmm3d_settings_v2', JSON.stringify(payload));
         } catch (e) {}
@@ -4352,13 +4487,17 @@
       }
 
       function executePlacement(nodeIdx, fromNetwork = false, preferredPiece = null) {
+        if (gameState.board[nodeIdx] !== 0) return;
+        const moveSeq = gameState.history.length;
         saveSnapshot();
+        onlineDeclinedUndoSeq = -1;
         const player = gameState.turn;
         const slotIdx = gameState.placedCount[player];
         const piece = (preferredPiece && preferredPiece.userData.player === player && preferredPiece.userData.nodeIndex === null)
                    ? preferredPiece
                    : (pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null && p.userData.traySlot === slotIdx)
                       || pieces3D.find(p => p.userData.player === player && p.userData.nodeIndex === null));
+        const usedTraySlot = piece ? piece.userData.traySlot : slotIdx;
 
         gameState.board[nodeIdx] = player;
         gameState.placedCount[player]++;
@@ -4371,7 +4510,7 @@
         }
 
         if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
-          sendOnlinePacket({ type: 'place', nodeIdx });
+          sendOnlinePacket({ type: 'place', nodeIdx, traySlot: usedTraySlot, seq: moveSeq });
         }
 
         sound.playWoodPlace(true);
@@ -4379,7 +4518,10 @@
       }
 
       function executeMovement(fromIdx, toIdx, fromNetwork = false) {
+        if (gameState.board[fromIdx] !== gameState.turn || gameState.board[toIdx] !== 0) return;
+        const moveSeq = gameState.history.length;
         saveSnapshot();
+        onlineDeclinedUndoSeq = -1;
         const player = gameState.turn;
         const piece = pieces3D.find(p => p.userData.nodeIndex === fromIdx);
 
@@ -4394,7 +4536,7 @@
         }
 
         if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
-          sendOnlinePacket({ type: 'move', fromIdx, toIdx });
+          sendOnlinePacket({ type: 'move', fromIdx, toIdx, seq: moveSeq });
         }
 
         sound.playWoodPlace(false);
@@ -4443,6 +4585,7 @@
       }
 
       function openDrawOfferModal(posKey) {
+        cancelActivePieceDrag();
         gameState.drawOfferActive = true;
         gameState.activePosKey = posKey || '';
         gameState.drawVotes = { 1: false, 2: false };
@@ -4492,6 +4635,7 @@
           pvpBox.classList.remove('hidden');
           pvpBox.classList.add('grid');
           singleBox.classList.add('hidden');
+          singleBox.classList.remove('flex');
           btnP1.disabled = gameState.drawVotes[1];
           btnP2.disabled = gameState.drawVotes[2];
           btnP1.textContent = gameState.drawVotes[1] ? 'Белые согласны ✓' : 'Белые: Согласен';
@@ -4500,6 +4644,7 @@
           pvpBox.classList.add('hidden');
           pvpBox.classList.remove('grid');
           singleBox.classList.remove('hidden');
+          singleBox.classList.add('flex');
           const mySide = gameState.opponentMode === 'online' ? (gameState.onlineRole || 1) : gameState.humanSide;
           const voted = Boolean(gameState.drawVotes[mySide]);
           btnSingle.disabled = voted;
@@ -4520,6 +4665,7 @@
       }
 
       function submitDrawVote(player, accept, fromNetwork = false) {
+        if (!gameState.drawOfferActive) return;
         if (!fromNetwork) {
           sound.playSelect();
         }
@@ -4600,7 +4746,7 @@
       }
 
       function handleNodeTap(nodeIdx) {
-        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return;
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive || onlineConsent.active) return;
         const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         if (isAIMode && gameState.turn !== gameState.humanSide) return;
         if (gameState.opponentMode === 'online') {
@@ -4639,22 +4785,16 @@
         }
       }
 
-      function undoLastMove(fromNetwork = false) {
-        if (gameState.aiTimerId) {
-          clearTimeout(gameState.aiTimerId);
-          gameState.aiTimerId = null;
-          gameState.isAnimating = false;
-        }
-        if (gameState.history.length === 0 || gameState.isAnimating) return;
-        sound.playSelect();
-
-        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
-          sendOnlinePacket({ type: 'undo' });
-        }
-
+      function applyUndoSnapshot(targetLen = null) {
+        if (gameState.history.length === 0) return;
+        cancelActivePieceDrag();
         const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         let snap = gameState.history.pop();
-        if (isAIMode && snap.turn !== gameState.humanSide && gameState.history.length > 0) {
+        if (typeof targetLen === 'number' && targetLen >= 0) {
+          while (gameState.history.length > targetLen) {
+            snap = gameState.history.pop();
+          }
+        } else if (isAIMode && snap.turn !== gameState.humanSide && gameState.history.length > 0) {
           snap = gameState.history.pop();
         }
 
@@ -4672,6 +4812,7 @@
         gameState.hintEdge = null;
         gameState.turnStartTime = clock.getElapsedTime();
         gameState.matchElapsedFixed = null;
+        onlineDeclinedUndoSeq = -1;
         closeDrawOfferModal();
 
         pieces3D.forEach((p, idx) => {
@@ -4690,15 +4831,52 @@
         triggerAITurnIfNeeded();
       }
 
+      function undoLastMove(fromNetwork = false) {
+        if (!fromNetwork && gameState.opponentMode === 'online') {
+          if (!gameState.onlineConnected || gameState.winner !== 0 || gameState.history.length === 0 || gameState.isAnimating || gameState.drawOfferActive || onlineConsent.active) {
+            return;
+          }
+          if (onlineDeclinedUndoSeq === gameState.history.length) {
+            showTransientStatus('Соперник уже отклонил отмену этого хода');
+            return;
+          }
+          requestOnlineAction('undo');
+          return;
+        }
+        if (gameState.aiTimerId) {
+          clearTimeout(gameState.aiTimerId);
+          gameState.aiTimerId = null;
+          gameState.isAnimating = false;
+        }
+        if (gameState.history.length === 0 || gameState.isAnimating) return;
+        sound.playSelect();
+        applyUndoSnapshot();
+      }
+
       function restartGame(fromNetwork = false, isRematchAfterWin = false) {
+        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          if (onlineConsent.active && onlineConsent.direction === 'incoming' &&
+              (onlineConsent.action === 'restart' || onlineConsent.action === 'rematch')) {
+            respondToOnlineAction(true);
+            return;
+          }
+          if (onlineConsent.active) return;
+          if (gameState.winner !== 0) {
+            requestOnlineAction('rematch');
+            return;
+          }
+          if (gameState.history.length > 0) {
+            requestOnlineAction('restart');
+            return;
+          }
+          return;
+        }
+        cancelActivePieceDrag();
         if (gameState.aiTimerId) {
           clearTimeout(gameState.aiTimerId);
           gameState.aiTimerId = null;
         }
         sound.playSelect();
-        if (!fromNetwork && gameState.opponentMode === 'online' && gameState.onlineConnected) {
-          sendOnlinePacket({ type: 'restart', useDiagonals: gameState.useDiagonals });
-        }
 
         if (gameState.aiSideMode === 'white') {
           gameState.humanSide = 1;
@@ -4725,6 +4903,7 @@
         gameState.matchElapsedFixed = null;
         gameState.hintEdge = null;
         gameState.isAnimating = false;
+        onlineDeclinedUndoSeq = -1;
         closeDrawOfferModal();
 
         pieces3D.forEach((p) => {
@@ -4752,7 +4931,7 @@
       }
 
       function showHintMove() {
-        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return;
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive || onlineConsent.active) return;
         const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         if (isAIMode && gameState.turn !== gameState.humanSide) return;
         if (gameState.opponentMode === 'online' && (!gameState.onlineConnected || gameState.turn !== gameState.onlineRole)) return;
@@ -4773,20 +4952,8 @@
       const raycaster = new THREE.Raycaster();
       const pointerNDC = new THREE.Vector2();
 
-      let isDragging = false;
-      let dragMovedDistance = 0;
-      let startX = 0;
-      let startY = 0;
-      let lastX = 0;
-      let lastY = 0;
-      let pinchStartDist = 0;
-      let pinchStartRadius = 8.8;
-      let potentialDragPiece = null;
-      let draggedPiece = null;
-      let dragHoverSocket = null;
-
       function isHumanTurnAllowed() {
-        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive) return false;
+        if (gameState.winner !== 0 || gameState.isAnimating || gameState.drawOfferActive || onlineConsent.active) return false;
         const isAIMode = gameState.opponentMode === 'ai_smart' || gameState.opponentMode === 'ai_casual';
         if (isAIMode && gameState.turn !== gameState.humanSide) return false;
         if (gameState.opponentMode === 'online' && (!gameState.onlineConnected || gameState.turn !== gameState.onlineRole)) return false;
@@ -4852,6 +5019,7 @@
       }
 
       function cancelActivePieceDrag() {
+        isDragging = false;
         if (draggedPiece) {
           const p = draggedPiece;
           p.userData.isBeingDragged = false;
@@ -5199,6 +5367,16 @@
 
       document.getElementById('btn-reset-score').addEventListener('click', () => {
         sound.playSelect();
+        if (gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          if (gameState.scores[1] === 0 && gameState.scores[2] === 0) {
+            showTransientStatus('Счёт уже равен 0 : 0', 2200);
+            return;
+          }
+          rulesModal.classList.add('hidden');
+          rulesModal.classList.remove('flex');
+          requestOnlineAction('reset_score');
+          return;
+        }
         gameState.scores = { 1: 0, 2: 0 };
         saveSettings();
         updateHUD();
@@ -5224,9 +5402,7 @@
       document.getElementById('btn-hint').addEventListener('click', showHintMove);
       document.getElementById('btn-restart').addEventListener('click', () => restartGame(false, false));
 
-      // --- Online Multiplayer (PeerJS WebRTC P2P Room Code System) ---
-      let peerInstance = null;
-      let onlineConn = null;
+      // --- Online Multiplayer (PeerJS WebRTC P2P Room Code System + Sync & Mutual Consent) ---
       const onlineModal = document.getElementById('online-modal');
       const onlineStatusText = document.getElementById('online-status-text');
       const onlineModalDot = document.getElementById('online-modal-dot');
@@ -5235,6 +5411,14 @@
       const hostCodeBox = document.getElementById('host-code-box');
       const hostRoomCodeEl = document.getElementById('host-room-code');
       const btnDisconnectOnline = document.getElementById('btn-disconnect-online');
+
+      const consentModal = document.getElementById('online-consent-modal');
+      const consentSubtitle = document.getElementById('consent-subtitle');
+      const consentTitle = document.getElementById('consent-title');
+      const consentDesc = document.getElementById('consent-desc');
+      const consentIncomingActions = document.getElementById('consent-incoming-actions');
+      const consentOutgoingActions = document.getElementById('consent-outgoing-actions');
+      const btnConsentAccept = document.getElementById('btn-consent-accept');
 
       function setOnlineStatus(msg, state = 'idle') {
         onlineStatusText.textContent = msg;
@@ -5268,29 +5452,574 @@
         onlineModal.classList.remove('flex');
       }
 
-      function disconnectOnlineSession() {
+      function getConsentCopy(action, params) {
+        if (action === 'undo') {
+          return {
+            title: 'Отмена хода',
+            desc: 'Соперник просит разрешения отменить последний ход.',
+            acceptLabel: 'Разрешить',
+            outgoingDesc: 'Ожидаем разрешения соперника на отмену последнего хода...'
+          };
+        }
+        if (action === 'restart') {
+          return {
+            title: 'Начать заново?',
+            desc: 'Соперник предлагает сбросить текущую партию и начать заново.',
+            acceptLabel: 'Согласиться',
+            outgoingDesc: 'Ожидаем согласия соперника начать партию заново...'
+          };
+        }
+        if (action === 'rematch') {
+          return {
+            title: 'Новая партия',
+            desc: 'Соперник приглашает начать следующую партию.',
+            acceptLabel: 'Начать партию',
+            outgoingDesc: 'Ожидаем подтверждения соперника на новую партию...'
+          };
+        }
+        if (action === 'change_diagonals') {
+          const modeTxt = params && params.useDiagonals ? 'Классика (8 линий)' : 'Без диагоналей (6 линий)';
+          return {
+            title: 'Смена правил доски',
+            desc: `Соперник предлагает режим «${modeTxt}» и новую партию.`,
+            acceptLabel: 'Согласиться',
+            outgoingDesc: 'Ожидаем согласия соперника на смену линий доски...'
+          };
+        }
+        return {
+          title: 'Сброс счёта',
+          desc: 'Соперник предлагает обнулить счёт партий (0 : 0).',
+          acceptLabel: 'Разрешить',
+          outgoingDesc: 'Ожидаем подтверждения соперника на сброс счёта...'
+        };
+      }
+
+      function closeOnlineConsentModal(skipHud = false) {
+        if (onlineConsent.timeoutId) {
+          clearTimeout(onlineConsent.timeoutId);
+          onlineConsent.timeoutId = null;
+        }
+        onlineConsent.active = false;
+        onlineConsent.direction = null;
+        onlineConsent.reqId = '';
+        onlineConsent.action = '';
+        onlineConsent.baseSeq = 0;
+        onlineConsent.params = null;
+        onlineConsent.legacyUndo = false;
+        if (consentModal) {
+          consentModal.classList.add('hidden');
+          consentModal.classList.remove('flex');
+        }
+        if (!skipHud) {
+          updateHUD();
+        }
+      }
+
+      function openOnlineConsentModal(direction, action, reqId, baseSeq, params, legacyUndo = false) {
+        cancelActivePieceDrag();
+        if (onlineConsent.timeoutId) {
+          clearTimeout(onlineConsent.timeoutId);
+          onlineConsent.timeoutId = null;
+        }
+        // Keep consent modal cleanly on top without z-30 overlap from rules/online modals
+        rulesModal.classList.add('hidden');
+        rulesModal.classList.remove('flex');
+        onlineModal.classList.add('hidden');
+        onlineModal.classList.remove('flex');
+
+        onlineConsent.active = true;
+        onlineConsent.direction = direction;
+        onlineConsent.reqId = reqId || '';
+        onlineConsent.action = action;
+        onlineConsent.baseSeq = baseSeq;
+        onlineConsent.params = params || {};
+        onlineConsent.legacyUndo = Boolean(legacyUndo);
+
+        const copy = getConsentCopy(action, onlineConsent.params);
+        if (direction === 'outgoing') {
+          consentSubtitle.textContent = 'Запрос отправлен';
+          consentTitle.textContent = copy.title;
+          consentDesc.textContent = copy.outgoingDesc;
+          consentIncomingActions.classList.add('hidden');
+          consentIncomingActions.classList.remove('flex');
+          consentOutgoingActions.classList.remove('hidden');
+          consentOutgoingActions.classList.add('flex');
+        } else {
+          consentSubtitle.textContent = 'Сетевая партия';
+          consentTitle.textContent = copy.title;
+          consentDesc.textContent = copy.desc;
+          btnConsentAccept.textContent = copy.acceptLabel;
+          consentIncomingActions.classList.remove('hidden');
+          consentIncomingActions.classList.add('flex');
+          consentOutgoingActions.classList.add('hidden');
+          consentOutgoingActions.classList.remove('flex');
+        }
+
+        consentModal.classList.remove('hidden');
+        consentModal.classList.add('flex');
+        sound.playSelect();
+        updateHUD();
+      }
+
+      function executeApprovedOnlineAction(action, params, targetLen) {
+        onlineDeclinedUndoSeq = -1;
+        if (action === 'undo') {
+          sound.playSelect();
+          applyUndoSnapshot(targetLen);
+        } else if (action === 'restart' || action === 'rematch') {
+          restartGame(true, action === 'rematch');
+        } else if (action === 'change_diagonals') {
+          const nextDiag = Boolean(params && params.useDiagonals);
+          gameState.useDiagonals = nextDiag;
+          document.getElementById('select-diagonals').value = nextDiag ? 'with_diag' : 'no_diag';
+          diagonalGroovesGroup.visible = nextDiag;
+          saveSettings();
+          restartGame(true, false);
+        } else if (action === 'reset_score') {
+          sound.playSelect();
+          gameState.scores = { 1: 0, 2: 0 };
+          updateHUD();
+        }
+      }
+
+      function requestOnlineAction(action, params = {}) {
+        if (!gameState.onlineConnected || !onlineConn || !onlineConn.open) return;
+        if (onlineConsent.active) return;
+        const now = Date.now();
+        if (now < (onlineActionCooldownUntil[action] || 0)) {
+          showTransientStatus('Подождите немного перед повторным запросом', 2600);
+          return;
+        }
+        const reqId = 'r_' + Math.random().toString(36).slice(2, 9) + '_' + now.toString(36);
+        const baseSeq = gameState.history.length;
+        sendOnlinePacket({ type: 'action_req', reqId, action, baseSeq, params });
+        openOnlineConsentModal('outgoing', action, reqId, baseSeq, params, false);
+        onlineConsent.timeoutId = setTimeout(() => {
+          if (onlineConsent.active && onlineConsent.direction === 'outgoing' && onlineConsent.reqId === reqId) {
+            sendOnlinePacket({ type: 'action_cancel', reqId });
+            closeOnlineConsentModal();
+            showTransientStatus('Время ожидания ответа истекло', 3000);
+          }
+        }, 20000);
+      }
+
+      function respondToOnlineAction(accept) {
+        if (!onlineConsent.active || onlineConsent.direction !== 'incoming') return;
+        const reqId = onlineConsent.reqId;
+        const action = onlineConsent.action;
+        const baseSeq = onlineConsent.baseSeq;
+        const params = onlineConsent.params;
+        const legacyUndo = onlineConsent.legacyUndo;
+
+        if (accept && action === 'undo' && (gameState.winner !== 0 || gameState.history.length === 0 || gameState.history.length !== baseSeq)) {
+          if (!legacyUndo) {
+            sendOnlinePacket({ type: 'action_resp', reqId, action, accept: false, reason: 'stale' });
+          }
+          closeOnlineConsentModal();
+          showTransientStatus('Ситуация на доске изменилась — запрос отменён', 3000);
+          return;
+        }
+
+        if (!legacyUndo) {
+          sendOnlinePacket({
+            type: 'action_resp',
+            reqId,
+            action,
+            accept: Boolean(accept),
+            targetLen: baseSeq - 1,
+            params
+          });
+        }
+        closeOnlineConsentModal();
+
+        if (accept) {
+          executeApprovedOnlineAction(action, params, baseSeq - 1);
+        } else if (legacyUndo) {
+          requestOrSendFullSync();
+        }
+      }
+
+      function cancelOutgoingOnlineAction() {
+        if (!onlineConsent.active || onlineConsent.direction !== 'outgoing') return;
+        const reqId = onlineConsent.reqId;
+        sendOnlinePacket({ type: 'action_cancel', reqId });
+        closeOnlineConsentModal();
+        showTransientStatus('Запрос отменён', 2000);
+      }
+
+      function buildFullSyncPayload(isInitial = false) {
+        const nowElapsed = clock.getElapsedTime();
+        const matchElapsedSec = (gameState.winner !== 0 && gameState.matchElapsedFixed !== null)
+          ? gameState.matchElapsedFixed
+          : Math.max(0, nowElapsed - gameState.matchStartTime);
+        const turnElapsedSec = gameState.winner !== 0
+          ? 0
+          : Math.max(0, nowElapsed - gameState.turnStartTime);
+        return {
+          type: 'full_sync',
+          protoVer: 2,
+          isInitial: Boolean(isInitial),
+          board: gameState.board.slice(),
+          turn: gameState.turn,
+          placedCount: { 1: gameState.placedCount[1], 2: gameState.placedCount[2] },
+          scores: { 1: gameState.scores[1], 2: gameState.scores[2] },
+          winner: gameState.winner,
+          winningLine: gameState.winningLine ? gameState.winningLine.slice() : null,
+          useDiagonals: gameState.useDiagonals,
+          positionCounts: Object.assign({}, gameState.positionCounts),
+          drawOfferActive: gameState.drawOfferActive,
+          drawVotes: { 1: Boolean(gameState.drawVotes[1]), 2: Boolean(gameState.drawVotes[2]) },
+          activePosKey: gameState.activePosKey || '',
+          pieceNodes: pieces3D.map(p => p.userData.nodeIndex),
+          history: gameState.history.map(h => ({
+            board: h.board.slice(),
+            turn: h.turn,
+            placedCount: { 1: h.placedCount[1], 2: h.placedCount[2] },
+            scores: h.scores ? { 1: h.scores[1], 2: h.scores[2] } : { 1: 0, 2: 0 },
+            positionCounts: Object.assign({}, h.positionCounts || {}),
+            pieceNodes: (h.pieceNodes || []).slice()
+          })),
+          matchElapsedSec,
+          turnElapsedSec
+        };
+      }
+
+      function applyFullSyncPayload(data) {
+        if (!data || !Array.isArray(data.board) || data.board.length !== 9) return;
+        cancelActivePieceDrag();
+        closeOnlineConsentModal(true);
+        onlineDeclinedUndoSeq = -1;
+
+        const nowElapsed = clock.getElapsedTime();
+        if (typeof data.useDiagonals === 'boolean') {
+          gameState.useDiagonals = data.useDiagonals;
+          document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
+          diagonalGroovesGroup.visible = gameState.useDiagonals;
+        }
+
+        gameState.board = data.board.map(v => (v === 1 || v === 2 ? v : 0));
+        gameState.turn = data.turn === 2 ? 2 : 1;
+        gameState.placedCount = {
+          1: data.placedCount && typeof data.placedCount[1] === 'number' ? data.placedCount[1] : gameState.board.filter(v => v === 1).length,
+          2: data.placedCount && typeof data.placedCount[2] === 'number' ? data.placedCount[2] : gameState.board.filter(v => v === 2).length
+        };
+        if (data.scores) {
+          gameState.scores = {
+            1: typeof data.scores[1] === 'number' ? data.scores[1] : 0,
+            2: typeof data.scores[2] === 'number' ? data.scores[2] : 0
+          };
+        }
+        gameState.winner = (data.winner === 1 || data.winner === 2 || data.winner === 3) ? data.winner : 0;
+        gameState.winningLine = Array.isArray(data.winningLine) && data.winningLine.length === 3 ? data.winningLine.slice() : null;
+        gameState.positionCounts = data.positionCounts && typeof data.positionCounts === 'object'
+          ? Object.assign({}, data.positionCounts)
+          : {};
+        gameState.history = Array.isArray(data.history)
+          ? data.history.map(h => ({
+              board: Array.isArray(h.board) ? h.board.slice() : Array(9).fill(0),
+              turn: h.turn === 2 ? 2 : 1,
+              placedCount: h.placedCount ? { 1: h.placedCount[1] || 0, 2: h.placedCount[2] || 0 } : { 1: 0, 2: 0 },
+              scores: h.scores ? { 1: h.scores[1] || 0, 2: h.scores[2] || 0 } : { 1: 0, 2: 0 },
+              positionCounts: Object.assign({}, h.positionCounts || {}),
+              pieceNodes: Array.isArray(h.pieceNodes) ? h.pieceNodes.slice() : Array(6).fill(null)
+            }))
+          : [];
+
+        gameState.selectedNode = null;
+        gameState.hintEdge = null;
+        gameState.isAnimating = false;
+
+        const mElapsed = typeof data.matchElapsedSec === 'number' ? Math.max(0, data.matchElapsedSec) : 0;
+        const tElapsed = typeof data.turnElapsedSec === 'number' ? Math.max(0, data.turnElapsedSec) : 0;
+        gameState.matchStartTime = nowElapsed - mElapsed;
+        gameState.turnStartTime = nowElapsed - tElapsed;
+        gameState.matchElapsedFixed = gameState.winner !== 0 ? mElapsed : null;
+
+        if (Array.isArray(data.pieceNodes) && data.pieceNodes.length === pieces3D.length) {
+          pieces3D.forEach((p, idx) => {
+            const nIdx = data.pieceNodes[idx];
+            const validIdx = (typeof nIdx === 'number' && nIdx >= 0 && nIdx < 9) ? nIdx : null;
+            p.userData.nodeIndex = validIdx;
+            p.userData.isBeingDragged = false;
+            const dest = validIdx !== null
+              ? nodePositions[validIdx]
+              : trayPositions[p.userData.player][p.userData.traySlot];
+            animatePieceTo(p, dest);
+          });
+        }
+
+        updateVictoryBeam();
+
+        if (data.drawOfferActive && gameState.winner === 0) {
+          gameState.drawOfferActive = true;
+          gameState.activePosKey = data.activePosKey || '';
+          gameState.drawVotes = {
+            1: Boolean(data.drawVotes && data.drawVotes[1]),
+            2: Boolean(data.drawVotes && data.drawVotes[2])
+          };
+          updateDrawModalUI();
+          const drawModal = document.getElementById('draw-modal');
+          drawModal.classList.remove('hidden');
+          drawModal.classList.add('flex');
+        } else {
+          closeDrawOfferModal();
+          gameState.drawVotes = { 1: false, 2: false };
+          gameState.activePosKey = '';
+        }
+
+        if (gameState.winner !== 0) {
+          showVictoryModal(gameState.winner, gameState.winner !== 3 && !gameState.winningLine);
+        } else {
+          hideVictoryModal();
+        }
+
+        if (data.isInitial && cameraState.presetIndex === 0) {
+          cameraState.targetTheta = gameState.onlineRole === 2 ? Math.PI : 0;
+        }
+
+        updateHUD();
+      }
+
+      function requestOrSendFullSync() {
+        if (!gameState.onlineConnected || !onlineConn || !onlineConn.open) return;
+        if (gameState.onlineRole === 1) {
+          sendOnlinePacket(buildFullSyncPayload(false));
+        } else {
+          sendOnlinePacket({ type: 'sync_req' });
+        }
+      }
+
+      function stopOnlineHeartbeat() {
+        if (heartbeatIntervalId) {
+          clearInterval(heartbeatIntervalId);
+          heartbeatIntervalId = null;
+        }
+      }
+
+      function startOnlineHeartbeat() {
+        stopOnlineHeartbeat();
+        lastPeerPacketAt = Date.now();
+        heartbeatIntervalId = setInterval(() => {
+          if (!onlineConn || !onlineConn.open || !gameState.onlineConnected) return;
+          sendOnlinePacket({ type: 'ping', t: Date.now() });
+          if (!document.hidden && (Date.now() - lastPeerPacketAt > 18000)) {
+            const staleConn = onlineConn;
+            try { staleConn.close(); } catch (e) {}
+          }
+        }, 4000);
+      }
+
+      function clearGuestReconnectTimer() {
+        if (guestReconnectTimer) {
+          clearTimeout(guestReconnectTimer);
+          guestReconnectTimer = null;
+        }
+      }
+
+      function disconnectOnlineSession(opts = {}) {
+        const keepOnlineMode = Boolean(opts && opts.keepOnlineMode);
+        const notifyPeer = (opts && typeof opts.notifyPeer === 'boolean') ? opts.notifyPeer : true;
+
+        clearGuestReconnectTimer();
+        stopOnlineHeartbeat();
         if (gameState.joinTimeoutId) {
           clearTimeout(gameState.joinTimeoutId);
           gameState.joinTimeoutId = null;
         }
-        if (onlineConn) {
-          try { onlineConn.close(); } catch (e) {}
-          onlineConn = null;
+        closeOnlineConsentModal(true);
+        closeDrawOfferModal();
+
+        if (notifyPeer && onlineConn && onlineConn.open) {
+          try { onlineConn.send({ type: 'leave' }); } catch (e) {}
         }
-        if (peerInstance) {
-          try { peerInstance.destroy(); } catch (e) {}
-          peerInstance = null;
+
+        const oldConn = onlineConn;
+        onlineConn = null;
+        if (oldConn) {
+          try { oldConn.close(); } catch (e) {}
         }
+        const oldPeer = peerInstance;
+        peerInstance = null;
+        if (oldPeer) {
+          try { oldPeer.destroy(); } catch (e) {}
+        }
+
         gameState.onlineConnected = false;
         gameState.onlineRole = null;
         gameState.roomCode = '';
+        boundGuestToken = '';
+        onlineRoomSessionId = '';
+        hasMatchStartedInRoom = false;
+        peerLeftIntentionally = false;
+        guestReconnectAttempts = 0;
+        onlineDeclinedUndoSeq = -1;
+        Object.keys(onlineActionCooldownUntil).forEach(k => delete onlineActionCooldownUntil[k]);
+
         hostCodeBox.classList.add('hidden');
         setOnlineStatus('Отключено. Выберите создание комнаты или вход по коду', 'idle');
-        if (gameState.opponentMode === 'online') {
-          gameState.opponentMode = 'pvp';
-          document.getElementById('select-opponent').value = 'pvp';
+
+        if (!keepOnlineMode) {
+          if (gameState.opponentMode === 'online') {
+            gameState.opponentMode = 'pvp';
+            document.getElementById('select-opponent').value = 'pvp';
+          }
+          gameState.scores = { 1: offlineScores[1], 2: offlineScores[2] };
+          restartGame(true, false);
+        } else {
+          updateHUD();
         }
+      }
+
+      function handleIncomingOnlineActionRequest(data) {
+        const allowed = ['undo', 'restart', 'rematch', 'change_diagonals', 'reset_score'];
+        if (!allowed.includes(data.action) || typeof data.reqId !== 'string' || !data.reqId) return;
+
+        if (data.action === 'undo') {
+          if (gameState.winner !== 0 || gameState.history.length === 0 || gameState.drawOfferActive || data.baseSeq !== gameState.history.length) {
+            sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: 'undo', accept: false, reason: 'stale' });
+            return;
+          }
+        }
+
+        if (onlineConsent.active) {
+          const sameAction = (onlineConsent.direction === 'outgoing' && onlineConsent.action === data.action &&
+            (data.action !== 'change_diagonals' || Boolean(onlineConsent.params && onlineConsent.params.useDiagonals) === Boolean(data.params && data.params.useDiagonals)));
+          if (sameAction) {
+            const outAction = onlineConsent.action;
+            const outParams = onlineConsent.params;
+            const tLen = gameState.history.length - 1;
+            sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: data.action, accept: true, targetLen: tLen, params: data.params || {} });
+            closeOnlineConsentModal(true);
+            executeApprovedOnlineAction(outAction, outParams, tLen);
+            return;
+          }
+          sendOnlinePacket({ type: 'action_resp', reqId: data.reqId, action: data.action, accept: false, reason: 'stale' });
+          return;
+        }
+
+        openOnlineConsentModal(
+          'incoming',
+          data.action,
+          data.reqId,
+          typeof data.baseSeq === 'number' ? data.baseSeq : gameState.history.length,
+          data.params || {},
+          false
+        );
+      }
+
+      function handleIncomingOnlineActionResponse(data) {
+        if (!onlineConsent.active || onlineConsent.direction !== 'outgoing' || data.reqId !== onlineConsent.reqId) return;
+        const action = onlineConsent.action;
+        const baseSeq = onlineConsent.baseSeq;
+        const params = onlineConsent.params;
+        closeOnlineConsentModal();
+
+        if (data.accept) {
+          const tLen = typeof data.targetLen === 'number' ? data.targetLen : (baseSeq - 1);
+          executeApprovedOnlineAction(action, params, tLen);
+          showTransientStatus('Соперник подтвердил запрос', 2200);
+        } else {
+          if (data.reason === 'stale') {
+            showTransientStatus('Ситуация на доске изменилась — запрос отменён', 3000);
+          } else {
+            onlineActionCooldownUntil[action] = Date.now() + (action === 'undo' ? 10000 : 15000);
+            if (action === 'undo') {
+              onlineDeclinedUndoSeq = gameState.history.length;
+            }
+            showTransientStatus('Соперник отклонил запрос', 3400);
+            updateHUD();
+          }
+        }
+      }
+
+      function handleIncomingOnlineActionCancel(data) {
+        if (onlineConsent.active && onlineConsent.direction === 'incoming' && (!data.reqId || data.reqId === onlineConsent.reqId)) {
+          closeOnlineConsentModal();
+          showTransientStatus('Соперник отменил запрос', 2400);
+        }
+      }
+
+      function scheduleGuestReconnect() {
+        if (gameState.onlineRole !== 2 || !gameState.roomCode || peerLeftIntentionally || !hasMatchStartedInRoom) return;
+        const delays = [1200, 3000, 6000, 10000, 15000];
+        if (guestReconnectAttempts >= delays.length) {
+          setOnlineStatus('Не удалось переподключиться к комнате ' + gameState.roomCode, 'idle');
+          updateHUD();
+          return;
+        }
+        const waitMs = delays[guestReconnectAttempts];
+        guestReconnectAttempts++;
+        clearGuestReconnectTimer();
+        setOnlineStatus(`Связь прервана. Переподключение к комнате ${gameState.roomCode}...`, 'waiting');
         updateHUD();
+        guestReconnectTimer = setTimeout(() => {
+          guestReconnectTimer = null;
+          attemptGuestReconnect();
+        }, waitMs);
+      }
+
+      function connectGuestToRoom(code) {
+        if (!peerInstance || peerInstance.destroyed || peerInstance.disconnected) return;
+        const conn = peerInstance.connect('tmm3d-royal-' + code, {
+          reliable: true,
+          serialization: 'json',
+          metadata: { guestToken: myGuestToken, protoVer: 2 }
+        });
+        bindDataConnection(conn, 2);
+        if (gameState.joinTimeoutId) clearTimeout(gameState.joinTimeoutId);
+        gameState.joinTimeoutId = setTimeout(() => {
+          if (!gameState.onlineConnected) {
+            if (hasMatchStartedInRoom && !peerLeftIntentionally) {
+              scheduleGuestReconnect();
+            } else {
+              setOnlineStatus('Не удалось связаться с комнатой ' + code + '. Проверьте код.', 'idle');
+            }
+          }
+        }, 10000);
+      }
+
+      function attemptGuestReconnect() {
+        if (gameState.onlineRole !== 2 || !gameState.roomCode || peerLeftIntentionally || gameState.onlineConnected) return;
+        const code = gameState.roomCode;
+        if (!peerInstance || peerInstance.destroyed) {
+          const peer = new Peer({ debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
+          peerInstance = peer;
+          peer.on('open', () => {
+            if (peer !== peerInstance) return;
+            connectGuestToRoom(code);
+          });
+          peer.on('disconnected', () => {
+            if (peer !== peerInstance || peerLeftIntentionally) return;
+            setTimeout(() => {
+              if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
+                try { peer.reconnect(); } catch (e) {}
+              }
+            }, 1500);
+          });
+          peer.on('error', (err) => {
+            if (peer !== peerInstance) return;
+            if (err && err.type === 'peer-unavailable') {
+              if (gameState.joinTimeoutId) {
+                clearTimeout(gameState.joinTimeoutId);
+                gameState.joinTimeoutId = null;
+              }
+              scheduleGuestReconnect();
+              return;
+            }
+            if (!gameState.onlineConnected) scheduleGuestReconnect();
+          });
+        } else if (peerInstance.disconnected) {
+          try { peerInstance.reconnect(); } catch (e) {}
+          setTimeout(() => {
+            if (peerInstance && !peerInstance.destroyed && peerInstance.open && !gameState.onlineConnected) {
+              connectGuestToRoom(code);
+            } else if (!gameState.onlineConnected) {
+              scheduleGuestReconnect();
+            }
+          }, 1200);
+        } else if (peerInstance.open) {
+          connectGuestToRoom(code);
+        }
       }
 
       function bindDataConnection(conn, role) {
@@ -5298,6 +6027,10 @@
         gameState.onlineRole = role;
 
         conn.on('open', () => {
+          if (conn !== onlineConn) return;
+          clearGuestReconnectTimer();
+          guestReconnectAttempts = 0;
+          peerLeftIntentionally = false;
           if (gameState.joinTimeoutId) {
             clearTimeout(gameState.joinTimeoutId);
             gameState.joinTimeoutId = null;
@@ -5307,49 +6040,212 @@
           document.getElementById('select-opponent').value = 'online';
           const roleLabel = role === 1 ? 'Белые (Хост)' : 'Чёрные (Гость)';
           setOnlineStatus(`Подключено! Вы играете за: ${roleLabel}`, 'connected');
-          restartGame(true, false);
+          startOnlineHeartbeat();
+
           if (role === 1) {
-            sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals });
+            if (conn.metadata && conn.metadata.guestToken) {
+              boundGuestToken = conn.metadata.guestToken;
+            }
+            if (!hasMatchStartedInRoom) {
+              hasMatchStartedInRoom = true;
+              gameState.scores = { 1: 0, 2: 0 };
+              restartGame(true, false);
+              sendOnlinePacket({ type: 'sync_init', useDiagonals: gameState.useDiagonals, protoVer: 2 });
+              sendOnlinePacket(buildFullSyncPayload(true));
+            } else {
+              sendOnlinePacket(buildFullSyncPayload(false));
+              updateHUD();
+            }
+          } else {
+            if (!hasMatchStartedInRoom) {
+              restartGame(true, false);
+            } else {
+              updateHUD();
+              sendOnlinePacket({ type: 'sync_req' });
+            }
           }
           setTimeout(() => {
-            closeOnlineModal();
+            if (gameState.onlineConnected && onlineConn === conn) {
+              closeOnlineModal();
+            }
           }, 600);
         });
 
         conn.on('data', (data) => {
+          if (conn !== onlineConn) return;
           if (!data || typeof data !== 'object') return;
+          lastPeerPacketAt = Date.now();
+
+          if (data.type === 'ping') {
+            sendOnlinePacket({ type: 'pong', t: data.t });
+            return;
+          }
+          if (data.type === 'pong') return;
+
+          if (data.type === 'room_full') {
+            peerLeftIntentionally = true;
+            disconnectOnlineSession({ keepOnlineMode: true, notifyPeer: false });
+            setOnlineStatus('Комната уже занята другими игроками', 'idle');
+            return;
+          }
+
+          if (data.type === 'leave') {
+            stopOnlineHeartbeat();
+            clearGuestReconnectTimer();
+            closeOnlineConsentModal(true);
+            gameState.onlineConnected = false;
+            const leavingConn = onlineConn;
+            onlineConn = null;
+            if (leavingConn) {
+              try { leavingConn.close(); } catch (e) {}
+            }
+            if (gameState.onlineRole === 1) {
+              boundGuestToken = '';
+              hasMatchStartedInRoom = false;
+              setOnlineStatus(`Соперник покинул комнату. Код ${gameState.roomCode} свободен`, 'waiting');
+              showTransientStatus('Соперник покинул комнату', 3600);
+            } else {
+              peerLeftIntentionally = true;
+              setOnlineStatus('Хост закрыл комнату', 'idle');
+              showTransientStatus('Хост закрыл комнату', 3600);
+            }
+            updateHUD();
+            return;
+          }
+
+          if (data.type === 'sync_req') {
+            if (gameState.onlineRole === 1) {
+              sendOnlinePacket(buildFullSyncPayload(false));
+            }
+            return;
+          }
+
+          if (data.type === 'full_sync') {
+            if (gameState.onlineRole === 2) {
+              hasMatchStartedInRoom = true;
+              applyFullSyncPayload(data);
+            }
+            return;
+          }
+
           if (data.type === 'sync_init') {
-            gameState.useDiagonals = Boolean(data.useDiagonals);
-            document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
-            diagonalGroovesGroup.visible = gameState.useDiagonals;
-            restartGame(true, false);
-          } else if (data.type === 'place') {
-            executePlacement(data.nodeIdx, true);
-          } else if (data.type === 'move') {
-            executeMovement(data.fromIdx, data.toIdx, true);
-          } else if (data.type === 'restart') {
             if (typeof data.useDiagonals === 'boolean') {
               gameState.useDiagonals = data.useDiagonals;
               document.getElementById('select-diagonals').value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
               diagonalGroovesGroup.visible = gameState.useDiagonals;
             }
-            restartGame(true, false);
+            if (!hasMatchStartedInRoom) {
+              hasMatchStartedInRoom = true;
+              restartGame(true, false);
+            }
+            return;
+          }
+
+          const peerRole = gameState.onlineRole === 1 ? 2 : 1;
+
+          if (data.type === 'place') {
+            if (typeof data.seq === 'number') {
+              if (data.seq < gameState.history.length) return;
+              if (data.seq > gameState.history.length) {
+                requestOrSendFullSync();
+                return;
+              }
+            }
+            if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
+                gameState.winner !== 0 || gameState.drawOfferActive ||
+                gameState.turn !== peerRole || getPhase() !== 'placement' ||
+                !Number.isInteger(data.nodeIdx) || data.nodeIdx < 0 || data.nodeIdx >= 9 ||
+                gameState.board[data.nodeIdx] !== 0) {
+              requestOrSendFullSync();
+              return;
+            }
+            if (onlineConsent.active) {
+              closeOnlineConsentModal(true);
+              showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
+            }
+            cancelActivePieceDrag();
+            const prefPiece = typeof data.traySlot === 'number'
+              ? pieces3D.find(p => p.userData.player === peerRole && p.userData.nodeIndex === null && p.userData.traySlot === data.traySlot)
+              : null;
+            executePlacement(data.nodeIdx, true, prefPiece || null);
+          } else if (data.type === 'move') {
+            if (typeof data.seq === 'number') {
+              if (data.seq < gameState.history.length) return;
+              if (data.seq > gameState.history.length) {
+                requestOrSendFullSync();
+                return;
+              }
+            }
+            if (!gameState.onlineConnected || gameState.opponentMode !== 'online' ||
+                gameState.winner !== 0 || gameState.drawOfferActive ||
+                gameState.turn !== peerRole || getPhase() !== 'movement' ||
+                !Number.isInteger(data.fromIdx) || data.fromIdx < 0 || data.fromIdx >= 9 ||
+                !Number.isInteger(data.toIdx) || data.toIdx < 0 || data.toIdx >= 9 ||
+                gameState.board[data.fromIdx] !== peerRole || gameState.board[data.toIdx] !== 0 ||
+                !getNeighbors(data.fromIdx).includes(data.toIdx)) {
+              requestOrSendFullSync();
+              return;
+            }
+            if (onlineConsent.active) {
+              closeOnlineConsentModal(true);
+              showTransientStatus('Соперник сделал ход — запрос отменён', 2600);
+            }
+            cancelActivePieceDrag();
+            executeMovement(data.fromIdx, data.toIdx, true);
+          } else if (data.type === 'action_req') {
+            handleIncomingOnlineActionRequest(data);
+          } else if (data.type === 'action_resp') {
+            handleIncomingOnlineActionResponse(data);
+          } else if (data.type === 'action_cancel') {
+            handleIncomingOnlineActionCancel(data);
           } else if (data.type === 'undo') {
-            undoLastMove(true);
+            // Require explicit consent even for raw/legacy undo packets
+            if (gameState.winner === 0 && gameState.history.length > 0 && !gameState.drawOfferActive && !onlineConsent.active) {
+              openOnlineConsentModal('incoming', 'undo', 'legacy_' + Date.now(), gameState.history.length, {}, true);
+            } else {
+              requestOrSendFullSync();
+            }
+          } else if (data.type === 'restart') {
+            // Require explicit consent even for raw/legacy restart packets
+            const reqAction = gameState.winner !== 0 ? 'rematch' : 'restart';
+            if (!onlineConsent.active && (gameState.winner !== 0 || gameState.history.length > 0)) {
+              openOnlineConsentModal('incoming', reqAction, 'legacy_' + Date.now(), gameState.history.length, {}, true);
+            } else {
+              requestOrSendFullSync();
+            }
           } else if (data.type === 'draw_vote') {
-            const voter = data.role === 1 || data.role === 2 ? data.role : (gameState.onlineRole === 1 ? 2 : 1);
+            const voter = gameState.onlineRole === 1 ? 2 : 1;
             submitDrawVote(voter, Boolean(data.accept), true);
           }
         });
 
         conn.on('close', () => {
+          if (conn !== onlineConn) return;
+          stopOnlineHeartbeat();
+          closeOnlineConsentModal(true);
+          onlineConn = null;
           gameState.onlineConnected = false;
-          setOnlineStatus('Соперник отключился от комнаты', 'idle');
+
+          if (peerLeftIntentionally) {
+            updateHUD();
+            return;
+          }
+          if (gameState.onlineRole === 1 && gameState.roomCode) {
+            setOnlineStatus(`Связь прервана. Ожидание переподключения (код ${gameState.roomCode})...`, 'waiting');
+            showTransientStatus('Связь с соперником прервана — ждём переподключения', 3600);
+          } else if (gameState.onlineRole === 2 && hasMatchStartedInRoom && gameState.roomCode) {
+            scheduleGuestReconnect();
+          } else {
+            setOnlineStatus('Соперник отключился от комнаты', 'idle');
+          }
           updateHUD();
         });
 
         conn.on('error', () => {
-          setOnlineStatus('Ошибка соединения с соперником', 'idle');
+          if (conn !== onlineConn) return;
+          if (!gameState.onlineConnected && !hasMatchStartedInRoom) {
+            setOnlineStatus('Ошибка соединения с соперником', 'idle');
+          }
         });
       }
 
@@ -5360,16 +6256,30 @@
           setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
           return;
         }
-        disconnectOnlineSession();
+        if (retryCount === 0 && gameState.opponentMode !== 'online') {
+          offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };
+        }
+        disconnectOnlineSession({ keepOnlineMode: true });
+        gameState.scores = { 1: 0, 2: 0 };
+        gameState.opponentMode = 'online';
+        document.getElementById('select-opponent').value = 'online';
+        if (retryCount === 0) {
+          restartGame(true, false);
+        }
+
         const code = String(Math.floor(1000 + Math.random() * 9000));
         const peerId = 'tmm3d-royal-' + code;
         setOnlineStatus('Создание комнаты на сервере сигналинга...', 'waiting');
 
-        peerInstance = new Peer(peerId, { debug: 0 });
-        peerInstance.on('open', () => {
+        const peer = new Peer(peerId, { debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
+        peerInstance = peer;
+
+        peer.on('open', () => {
+          if (peer !== peerInstance) return;
           gameState.roomCode = code;
           gameState.onlineRole = 1;
           gameState.opponentMode = 'online';
+          onlineRoomSessionId = 'r_' + code + '_' + Date.now().toString(36);
           document.getElementById('select-opponent').value = 'online';
           hostRoomCodeEl.textContent = code;
           hostCodeBox.classList.remove('hidden');
@@ -5377,17 +6287,48 @@
           updateHUD();
         });
 
-        peerInstance.on('connection', (conn) => {
+        peer.on('connection', (incomingConn) => {
+          if (peer !== peerInstance) return;
           if (onlineConn && onlineConn.open) {
-            try { conn.close(); } catch (e) {}
+            const incomingToken = incomingConn.metadata && incomingConn.metadata.guestToken;
+            if (boundGuestToken && incomingToken && incomingToken === boundGuestToken) {
+              const oldConn = onlineConn;
+              onlineConn = null;
+              try { oldConn.close(); } catch (e) {}
+              bindDataConnection(incomingConn, 1);
+            } else {
+              incomingConn.on('open', () => {
+                try { incomingConn.send({ type: 'room_full' }); } catch (e) {}
+                setTimeout(() => { try { incomingConn.close(); } catch (e) {} }, 250);
+              });
+            }
             return;
           }
-          bindDataConnection(conn, 1);
+          bindDataConnection(incomingConn, 1);
         });
 
-        peerInstance.on('error', (err) => {
+        peer.on('disconnected', () => {
+          if (peer !== peerInstance || peerLeftIntentionally) return;
+          setTimeout(() => {
+            if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
+              try { peer.reconnect(); } catch (e) {}
+            }
+          }, 1500);
+        });
+
+        peer.on('error', (err) => {
+          if (peer !== peerInstance) return;
           if (err && err.type === 'unavailable-id' && retryCount < 5) {
             startHostingRoom(retryCount + 1);
+            return;
+          }
+          if (gameState.onlineConnected && onlineConn && onlineConn.open &&
+              err && ['network', 'disconnected', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
+            setTimeout(() => {
+              if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
+                try { peer.reconnect(); } catch (e) {}
+              }
+            }, 1500);
             return;
           }
           setOnlineStatus('Не удалось создать комнату (' + (err.type || 'сеть') + '). Попробуйте ещё раз.', 'idle');
@@ -5400,27 +6341,80 @@
           setOnlineStatus('Для онлайн-игры требуется подключение к интернету', 'idle');
           return;
         }
-        const rawCode = (document.getElementById('input-join-code').value || '').trim().replace(/[^0-9A-Za-z]/g, '');
+        const joinInputEl = document.getElementById('input-join-code');
+        const rawInput = (joinInputEl.value || '').trim();
+        const urlMatch = rawInput.match(/[?&]room=([0-9A-Za-z]{4,8})/i);
+        let rawCode = '';
+        if (urlMatch) {
+          rawCode = urlMatch[1];
+        } else {
+          const digitsMatch = rawInput.match(/\b(\d{4})\b/);
+          rawCode = digitsMatch ? digitsMatch[1] : rawInput.replace(/[^0-9A-Za-z]/g, '');
+        }
         if (rawCode.length < 4) {
           setOnlineStatus('Пожалуйста, введите 4-значный код комнаты друга', 'idle');
           return;
         }
-        disconnectOnlineSession();
+        rawCode = rawCode.slice(0, 8);
+        joinInputEl.value = rawCode;
+
+        if (gameState.opponentMode !== 'online') {
+          offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };
+        }
+        disconnectOnlineSession({ keepOnlineMode: true });
+        gameState.scores = { 1: 0, 2: 0 };
+        gameState.opponentMode = 'online';
+        document.getElementById('select-opponent').value = 'online';
+        gameState.onlineRole = 2;
+        gameState.roomCode = rawCode;
+        restartGame(true, false);
         setOnlineStatus(`Подключение к комнате ${rawCode}...`, 'waiting');
 
-        peerInstance = new Peer({ debug: 0 });
-        peerInstance.on('open', () => {
-          const conn = peerInstance.connect('tmm3d-royal-' + rawCode, { reliable: true });
-          bindDataConnection(conn, 2);
-          gameState.joinTimeoutId = setTimeout(() => {
-            if (!gameState.onlineConnected) {
-              setOnlineStatus('Не удалось связаться с комнатой ' + rawCode + '. Проверьте код.', 'idle');
-            }
-          }, 10000);
+        const peer = new Peer({ debug: 0, pingInterval: 5000, config: PEER_ICE_CONFIG });
+        peerInstance = peer;
+
+        peer.on('open', () => {
+          if (peer !== peerInstance) return;
+          connectGuestToRoom(rawCode);
         });
 
-        peerInstance.on('error', () => {
-          setOnlineStatus('Комната не найдена. Проверьте 4-значный код.', 'idle');
+        peer.on('disconnected', () => {
+          if (peer !== peerInstance || peerLeftIntentionally) return;
+          setTimeout(() => {
+            if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
+              try { peer.reconnect(); } catch (e) {}
+            }
+          }, 1500);
+        });
+
+        peer.on('error', (err) => {
+          if (peer !== peerInstance) return;
+          if (err && err.type === 'peer-unavailable') {
+            if (gameState.joinTimeoutId) {
+              clearTimeout(gameState.joinTimeoutId);
+              gameState.joinTimeoutId = null;
+            }
+            if (!hasMatchStartedInRoom) {
+              setOnlineStatus(`Комната ${rawCode} не найдена. Проверьте 4-значный код.`, 'idle');
+            } else if (!peerLeftIntentionally) {
+              scheduleGuestReconnect();
+            }
+            return;
+          }
+          if (gameState.onlineConnected && onlineConn && onlineConn.open &&
+              err && ['network', 'disconnected', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
+            setTimeout(() => {
+              if (peer === peerInstance && !peer.destroyed && peer.disconnected) {
+                try { peer.reconnect(); } catch (e) {}
+              }
+            }, 1500);
+            return;
+          }
+          if (!hasMatchStartedInRoom) {
+            setOnlineStatus('Комната не найдена. Проверьте 4-значный код.', 'idle');
+          } else if (!peerLeftIntentionally) {
+            scheduleGuestReconnect();
+          }
         });
       }
 
@@ -5429,10 +6423,37 @@
       document.getElementById('btn-close-online-bottom').addEventListener('click', closeOnlineModal);
       document.getElementById('btn-host-room').addEventListener('click', startHostingRoom);
       document.getElementById('btn-join-room').addEventListener('click', joinExistingRoom);
+      document.getElementById('input-join-code').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          joinExistingRoom();
+        }
+      });
       document.getElementById('btn-disconnect-online').addEventListener('click', () => {
         sound.playSelect();
         disconnectOnlineSession();
       });
+      btnConsentAccept.addEventListener('click', () => respondToOnlineAction(true));
+      document.getElementById('btn-consent-decline').addEventListener('click', () => respondToOnlineAction(false));
+      document.getElementById('btn-consent-cancel').addEventListener('click', cancelOutgoingOnlineAction);
+
+      function handleNetworkResume() {
+        if (gameState.opponentMode !== 'online') return;
+        lastPeerPacketAt = Date.now();
+        if (peerInstance && !peerInstance.destroyed && peerInstance.disconnected) {
+          try { peerInstance.reconnect(); } catch (e) {}
+        }
+        if (onlineConn && onlineConn.open) {
+          sendOnlinePacket({ type: 'ping', t: Date.now() });
+        } else if (gameState.onlineRole === 2 && gameState.roomCode && hasMatchStartedInRoom && !peerLeftIntentionally) {
+          attemptGuestReconnect();
+        }
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) handleNetworkResume();
+      });
+      window.addEventListener('online', handleNetworkResume);
 
       function copyTextToClipboard(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5456,7 +6477,7 @@
         const btn = document.getElementById('btn-copy-code');
         copyTextToClipboard(code).then(() => {
           btn.textContent = 'Скопировано!';
-          setTimeout(() => { btn.textContent = 'Код'; }, 1600);
+          setTimeout(() => { btn.textContent = 'Копировать'; }, 1600);
         }).catch(() => {});
       });
 
@@ -5507,38 +6528,74 @@
       const selectOpponent = document.getElementById('select-opponent');
       document.getElementById('btn-mode').addEventListener('click', () => {
         sound.playSelect();
+        if (gameState.opponentMode === 'online' && (gameState.onlineConnected || peerInstance)) {
+          openOnlineModal();
+          return;
+        }
+        const wasOnline = gameState.opponentMode === 'online';
         const modes = ['pvp', 'ai_smart', 'ai_casual', 'online'];
         const nextIdx = (modes.indexOf(gameState.opponentMode) + 1) % modes.length;
-        gameState.opponentMode = modes[nextIdx];
+        const nextMode = modes[nextIdx];
+        if (!wasOnline && nextMode === 'online') {
+          offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };
+          gameState.scores = { 1: 0, 2: 0 };
+        } else if (wasOnline && nextMode !== 'online') {
+          gameState.scores = { 1: offlineScores[1], 2: offlineScores[2] };
+        }
+        gameState.opponentMode = nextMode;
         selectOpponent.value = gameState.opponentMode;
         saveSettings();
         if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
           openOnlineModal();
         }
-        restartGame(false, false);
+        restartGame(true, false);
       });
 
       selectOpponent.addEventListener('change', (e) => {
-        gameState.opponentMode = e.target.value;
+        const nextMode = e.target.value;
+        const wasOnline = gameState.opponentMode === 'online';
+        if (wasOnline && nextMode !== 'online' && (gameState.onlineConnected || peerInstance || gameState.roomCode)) {
+          disconnectOnlineSession();
+        }
+        if (!wasOnline && nextMode === 'online') {
+          offlineScores = { 1: gameState.scores[1], 2: gameState.scores[2] };
+          gameState.scores = { 1: 0, 2: 0 };
+        } else if (wasOnline && nextMode !== 'online') {
+          gameState.scores = { 1: offlineScores[1], 2: offlineScores[2] };
+        }
+        gameState.opponentMode = nextMode;
+        selectOpponent.value = nextMode;
         saveSettings();
         if (gameState.opponentMode === 'online' && !gameState.onlineConnected) {
+          rulesModal.classList.add('hidden');
+          rulesModal.classList.remove('flex');
           openOnlineModal();
         }
-        restartGame(false, false);
+        restartGame(true, false);
       });
 
       const selectAiSide = document.getElementById('select-ai-side');
       selectAiSide.addEventListener('change', (e) => {
         gameState.aiSideMode = e.target.value;
         saveSettings();
-        restartGame(false, false);
+        if (gameState.opponentMode === 'online') return;
+        restartGame(true, false);
       });
 
       document.getElementById('select-diagonals').addEventListener('change', (e) => {
-        gameState.useDiagonals = e.target.value === 'with_diag';
+        const wantDiagonals = e.target.value === 'with_diag';
+        if (gameState.opponentMode === 'online' && gameState.onlineConnected) {
+          e.target.value = gameState.useDiagonals ? 'with_diag' : 'no_diag';
+          if (wantDiagonals === gameState.useDiagonals) return;
+          rulesModal.classList.add('hidden');
+          rulesModal.classList.remove('flex');
+          requestOnlineAction('change_diagonals', { useDiagonals: wantDiagonals });
+          return;
+        }
+        gameState.useDiagonals = wantDiagonals;
         diagonalGroovesGroup.visible = gameState.useDiagonals;
         saveSettings();
-        restartGame(false, false);
+        restartGame(true, false);
       });
 
       document.getElementById('toggle-autorotate').addEventListener('change', (e) => {
@@ -5661,6 +6718,7 @@
               syncVolumeSlidersDOM(pct);
             }
             if (s.scores && typeof s.scores[1] === 'number' && typeof s.scores[2] === 'number') {
+              offlineScores = { 1: s.scores[1], 2: s.scores[2] };
               gameState.scores = { 1: s.scores[1], 2: s.scores[2] };
             }
           } else {
@@ -5830,6 +6888,15 @@
       // --- Service Worker Registration & iOS Standalone PWA Helper ---
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
         window.addEventListener('load', () => {
+          const hadController = Boolean(navigator.serviceWorker.controller);
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!hadController || refreshing) return;
+            if (gameState.history.length === 0 && !gameState.onlineConnected && !peerInstance) {
+              refreshing = true;
+              window.location.reload();
+            }
+          });
           navigator.serviceWorker.register('./sw.js').catch(() => {});
         });
       }
@@ -5837,7 +6904,7 @@
       // Unlock WebAudio & start background music on first iOS/desktop interaction
       const unlockAudioIOS = () => {
         sound.init();
-        if (sound.musicEnabled && !sound.isPlayingMusic) {
+        if (sound.musicEnabled && !sound.isMusicPlaying) {
           sound.startMusic();
         }
         window.removeEventListener('touchstart', unlockAudioIOS, true);
@@ -5858,8 +6925,11 @@
           const params = new URLSearchParams(window.location.search);
           const inviteRoom = params.get('room');
           if (inviteRoom && inviteRoom.trim().length >= 4) {
-            const cleanCode = inviteRoom.trim().replace(/[^0-9A-Za-z]/g, '').slice(0, 4);
+            const cleanCode = inviteRoom.trim().replace(/[^0-9A-Za-z]/g, '').slice(0, 8);
             document.getElementById('input-join-code').value = cleanCode;
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, '', window.location.pathname);
+            }
             openOnlineModal();
             setTimeout(() => {
               joinExistingRoom();

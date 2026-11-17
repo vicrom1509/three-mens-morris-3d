@@ -1,5 +1,5 @@
 ﻿// Service Worker for Three Men's Morris 3D (iPhone iOS PWA & GitHub Pages)
-const CACHE_NAME = 'three-mens-morris-3d-v1.7';
+const CACHE_NAME = 'three-mens-morris-3d-v1.8';
 
 const CORE_ASSETS = [
   './',
@@ -21,7 +21,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(
-        CORE_ASSETS.map((url) => cache.add(url).catch(() => {}))
+        CORE_ASSETS.map((url) => {
+          const req = url.startsWith('./') ? new Request(url, { cache: 'reload' }) : url;
+          return cache.add(req).catch(() => {});
+        })
       )
     )
   );
